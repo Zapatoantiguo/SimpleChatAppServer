@@ -3,7 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35222.181
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleChatApp", "SimpleChatApp\SimpleChatApp.csproj", "{C1379886-4E9B-4482-A13D-5910E79DFE5B}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C1379886-4E9B-4482-A13D-5910E79DFE5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1379886-4E9B-4482-A13D-5910E79DFE5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1379886-4E9B-4482-A13D-5910E79DFE5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1379886-4E9B-4482-A13D-5910E79DFE5B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
