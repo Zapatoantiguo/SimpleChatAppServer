@@ -2,7 +2,8 @@
 {
     public class UserProfile
     {
-        public string? UserId { get; set; }
+        public int UserProfileId { get; set; }
+        public required string UserId { get; set; }
         public string? Bio {  get; set; }
         public ChatInventionOptions InventionOptions { get; set; }
         public required string Nickname { get; set; }
