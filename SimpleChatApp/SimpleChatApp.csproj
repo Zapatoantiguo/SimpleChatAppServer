@@ -7,10 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
     <Folder Include="Data\Migrations\" />
     <Folder Include="Hubs\" />
-    <Folder Include="Models\Requests\" />
   </ItemGroup>
 
   <ItemGroup>
