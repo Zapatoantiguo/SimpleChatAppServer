@@ -35,13 +35,9 @@ namespace SimpleChatApp.Controllers
 
         [HttpPost]
         [Route("register")]
-        public async Task<Results<Ok, ValidationProblem, BadRequest>> Register([FromBody] RegisterRequestModel regRequest)
+        public async Task<Results<Ok, ValidationProblem>> Register([FromBody] RegisterRequest regRequest)
         {
-            var email = regRequest.Email;
-            var userName = regRequest.Username;
-
-            var user = new User();
-            await _userStore.SetUserNameAsync(user, userName, CancellationToken.None);
+            var user = new User() { UserName = regRequest.Username, IsAnonimous = false };
             var result = await _userManager.CreateAsync(user, regRequest.Password);
 
             if (!result.Succeeded)
@@ -50,11 +46,35 @@ namespace SimpleChatApp.Controllers
             }
 
             return TypedResults.Ok();
+            // TODO: make register - login in 1 action?
+        }
+        [HttpPost]
+        [Route("GuestLogin")]
+        public async Task<Results<Ok<AccessTokenResponse>, ValidationProblem, EmptyHttpResult>> GuestLogin
+            ([FromBody] GuestLoginRequest loginRequest,
+            [FromQuery] bool? useCookies)
+        {
+            var user = new User() { UserName = loginRequest.Username, IsAnonimous = true };
+            var result = await _userManager.CreateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                return CreateValidationProblem(result);
+            }
+
+            var useCookieScheme = useCookies == true;
+            var isPersistent = false;
+            _signInManager.AuthenticationScheme = useCookieScheme ? IdentityConstants.ApplicationScheme : IdentityConstants.BearerScheme;
+            var signInTask = _signInManager.SignInAsync(user, isPersistent);
+            await signInTask;
+
+            // The signInManager already produced the needed response in the form of a cookie or bearer token.
+            return TypedResults.Empty;
         }
         [HttpPost]
         [Route("login")]
         public async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> Login
-            ([FromBody] LoginRequestModel loginRequest, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
+            ([FromBody] LoginRequest loginRequest, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
         {
             var useCookieScheme = (useCookies == true) || (useSessionCookies == true);
             var isPersistent = (useCookies == true) && (useSessionCookies != true);
@@ -74,20 +94,29 @@ namespace SimpleChatApp.Controllers
         [HttpPost]
         [Route("logout")]
         [Authorize]
-        public async Task<Results<Ok, UnauthorizedHttpResult>> Logout([FromBody] object empty)
+        public async Task<Results<Ok, UnauthorizedHttpResult>> Logout()
         {
-            if (empty != null)
-            {   
-                await _signInManager.SignOutAsync();
-                return TypedResults.Ok();
+            User? user = await _userManager.GetUserAsync(HttpContext.User);
+            if (user == null)
+            {
+                return TypedResults.Unauthorized();
             }
-            return TypedResults.Unauthorized();
+
+            await _signInManager.SignOutAsync();
+
+            if (user.IsAnonimous)
+            {
+                var delResult = await _userManager.DeleteAsync(user);
+                // ...?
+            }
+
+            return TypedResults.Ok();
         }
 
         [HttpPost]
-        [Route("refresh")]
+        [Route("RefreshToken")]
         [Authorize]
-        public async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>>Register
+        public async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> Register
             ([FromBody] RefreshRequest refreshRequest)
         {
             var refreshTokenProtector = _bearerTokenOptions.Get(IdentityConstants.BearerScheme).RefreshTokenProtector;
