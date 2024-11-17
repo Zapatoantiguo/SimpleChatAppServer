@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
+using SimpleChatApp.Services;
 
 namespace SimpleChatApp.Controllers
 {
@@ -19,18 +20,21 @@ namespace SimpleChatApp.Controllers
         SignInManager<User> _signInManager;
         IOptionsMonitor<BearerTokenOptions> _bearerTokenOptions;
         TimeProvider _timeProvider;
+        IUserHubContextManager _userHubContextManager;
 
         public AccountController(UserManager<User> userManager,
                     IUserStore<User> userStore,
                     SignInManager<User> signInManager,
                     IOptionsMonitor<BearerTokenOptions> bearerTokenOptions,
-                    TimeProvider timeProvider)
+                    TimeProvider timeProvider,
+                    IUserHubContextManager userHubContextManager)
         {
             _userManager = userManager;
             _userStore = userStore;
             _signInManager = signInManager;
             _bearerTokenOptions = bearerTokenOptions;
             _timeProvider = timeProvider;
+            _userHubContextManager = userHubContextManager;
         }
 
         [HttpPost]
@@ -102,7 +106,9 @@ namespace SimpleChatApp.Controllers
                 return TypedResults.Unauthorized();
             }
 
+            _userHubContextManager.Disconnect(user.Id);
             await _signInManager.SignOutAsync();
+            
 
             if (user.IsAnonimous)
             {
