@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
-namespace SimpleChatApp.Services
+namespace SimpleChatApp.Hubs.Services
 {
     public class UserHubContextManager : IUserHubContextManager
     {
@@ -31,7 +31,7 @@ namespace SimpleChatApp.Services
             lock (_dict)
             {
                 if (!_dict.Remove(userId, out var list))
-                    return;                
+                    return;
             }
         }
 

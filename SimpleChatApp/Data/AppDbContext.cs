@@ -24,15 +24,16 @@ namespace SimpleChatApp.Data
             builder.Entity<User>()
                 .HasMany(u => u.ChatRooms)
                 .WithMany(chat => chat.Users)
-                .UsingEntity(typeof(UserChatRoom));
+                .UsingEntity<UserChatRoom>();
 
             builder.Entity<Message>()
                 .HasOne(msg => msg.Author)
                 .WithMany()
                 .OnDelete(DeleteBehavior.Restrict);
 
-
-
+            builder.Entity<UserProfile>()
+                .HasIndex(up => up.Nickname)    // can't find a better way to make field unique yet
+                .IsUnique();
 
             base.OnModelCreating(builder);
         }

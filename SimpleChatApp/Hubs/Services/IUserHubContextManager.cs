@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace SimpleChatApp.Services
+namespace SimpleChatApp.Hubs.Services
 {
     /// <summary>
     /// Service for SignalR hub-related actions in link with particular user.

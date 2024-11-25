@@ -1,6 +1,6 @@
-﻿namespace SimpleChatApp.Models.Requests.Auth
+﻿namespace SimpleChatApp.Models.DTO.Auth
 {
-    public class RegisterRequest
+    public class RegisterDto
     {
         public required string Username { get; init; }
         public required string Email { get; init; }

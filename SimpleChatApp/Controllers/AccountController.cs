@@ -1,5 +1,4 @@
-﻿using SimpleChatApp.Models.Requests.Auth;
-using SimpleChatApp.Models;
+﻿using SimpleChatApp.Models;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,7 +6,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
-using SimpleChatApp.Services;
+using SimpleChatApp.Hubs.Services;
+using SimpleChatApp.Data.Services;
+using SimpleChatApp.Models.DTO.Auth;
 
 namespace SimpleChatApp.Controllers
 {
@@ -21,13 +22,15 @@ namespace SimpleChatApp.Controllers
         IOptionsMonitor<BearerTokenOptions> _bearerTokenOptions;
         TimeProvider _timeProvider;
         IUserHubContextManager _userHubContextManager;
+        IDbDataService _dbDataService;
 
         public AccountController(UserManager<User> userManager,
                     IUserStore<User> userStore,
                     SignInManager<User> signInManager,
                     IOptionsMonitor<BearerTokenOptions> bearerTokenOptions,
                     TimeProvider timeProvider,
-                    IUserHubContextManager userHubContextManager)
+                    IUserHubContextManager userHubContextManager,
+                    IDbDataService dbDataService)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -35,11 +38,12 @@ namespace SimpleChatApp.Controllers
             _bearerTokenOptions = bearerTokenOptions;
             _timeProvider = timeProvider;
             _userHubContextManager = userHubContextManager;
+            _dbDataService = dbDataService;
         }
 
         [HttpPost]
         [Route("register")]
-        public async Task<Results<Ok, ValidationProblem>> Register([FromBody] RegisterRequest regRequest)
+        public async Task<Results<Ok, ValidationProblem>> Register([FromBody] RegisterDto regRequest)
         {
             var user = new User() { UserName = regRequest.Username, IsAnonimous = false };
             var result = await _userManager.CreateAsync(user, regRequest.Password);
@@ -49,13 +53,15 @@ namespace SimpleChatApp.Controllers
                 return CreateValidationProblem(result);
             }
 
+            await _dbDataService.CreateUserProfileAsync(user);
+
             return TypedResults.Ok();
             // TODO: make register - login in 1 action?
         }
         [HttpPost]
         [Route("GuestLogin")]
         public async Task<Results<Ok<AccessTokenResponse>, ValidationProblem, EmptyHttpResult>> GuestLogin
-            ([FromBody] GuestLoginRequest loginRequest,
+            ([FromBody] GuestLoginDto loginRequest,
             [FromQuery] bool? useCookies)
         {
             var user = new User() { UserName = loginRequest.Username, IsAnonimous = true };
@@ -78,7 +84,7 @@ namespace SimpleChatApp.Controllers
         [HttpPost]
         [Route("login")]
         public async Task<Results<Ok<AccessTokenResponse>, EmptyHttpResult, ProblemHttpResult>> Login
-            ([FromBody] LoginRequest loginRequest, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
+            ([FromBody] LoginDto loginRequest, [FromQuery] bool? useCookies, [FromQuery] bool? useSessionCookies)
         {
             var useCookieScheme = (useCookies == true) || (useSessionCookies == true);
             var isPersistent = (useCookies == true) && (useSessionCookies != true);
@@ -108,7 +114,7 @@ namespace SimpleChatApp.Controllers
 
             _userHubContextManager.Disconnect(user.Id);
             await _signInManager.SignOutAsync();
-            
+
 
             if (user.IsAnonimous)
             {
@@ -123,7 +129,7 @@ namespace SimpleChatApp.Controllers
         [Route("RefreshToken")]
         [Authorize]
         public async Task<Results<Ok<AccessTokenResponse>, UnauthorizedHttpResult, SignInHttpResult, ChallengeHttpResult>> Register
-            ([FromBody] RefreshRequest refreshRequest)
+            ([FromBody] RefreshDto refreshRequest)
         {
             var refreshTokenProtector = _bearerTokenOptions.Get(IdentityConstants.BearerScheme).RefreshTokenProtector;
             var refreshTicket = refreshTokenProtector.Unprotect(refreshRequest.RefreshToken);
