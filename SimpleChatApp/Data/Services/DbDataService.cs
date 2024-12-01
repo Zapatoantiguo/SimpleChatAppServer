@@ -255,13 +255,13 @@ namespace SimpleChatApp.Data.Services
             return notification;
         }
 
-        public async Task<List<InviteNotification>> GetInviteNotifications(string targetUserId)
+        public async Task<List<InviteNotification>> GetInviteNotifications(string userId)
         {
             var notifications = await _context.InviteNotifications
-                .Where(n => n.TargetId == targetUserId)
+                .Where(n => n.TargetId == userId)
                 .ToListAsync();
             
-            return notifications ?? new List<InviteNotification> ();
+            return notifications ?? new List<InviteNotification>();
         }
 
         public async Task<InviteNotification?> RemoveInviteNotificationAsync(InviteNotification notification)

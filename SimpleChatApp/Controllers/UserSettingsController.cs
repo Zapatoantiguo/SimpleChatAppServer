@@ -12,12 +12,12 @@ namespace SimpleChatApp.Controllers
     [Route("api/[controller]")]
     public class UserSettingsController : ControllerBase
     {
-        IDbDataService _dbDataService;
+        IUserDataService _userDataService;
         UserManager<User> _userManager;
-        public UserSettingsController(IDbDataService dbDataService,
+        public UserSettingsController(IUserDataService userDataService,
                                       UserManager<User> userManager)
         {
-            _dbDataService = dbDataService;
+            _userDataService = userDataService;
             _userManager = userManager;
         }
 
@@ -31,7 +31,7 @@ namespace SimpleChatApp.Controllers
             {
                 throw new ArgumentNullException(nameof(user));
             }
-            var profile = await _dbDataService.GetUserProfileAsync(user.Id);
+            var profile = await _userDataService.GetUserProfileAsync(user.Id);
             return profile!;
         }
 
@@ -50,7 +50,7 @@ namespace SimpleChatApp.Controllers
                 throw new ArgumentNullException(nameof(user));
             }
 
-            var pr =await _dbDataService.UpdateUserProfileAsync(user, profile);
+            var pr =await _userDataService.UpdateUserProfileAsync(user, profile);
             return TypedResults.Ok(pr);
         }
     }

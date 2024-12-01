@@ -22,7 +22,7 @@ namespace SimpleChatApp.Controllers
         IOptionsMonitor<BearerTokenOptions> _bearerTokenOptions;
         TimeProvider _timeProvider;
         IUserHubContextManager _userHubContextManager;
-        IDbDataService _dbDataService;
+        IUserDataService _dbUserDataService;
 
         public AccountController(UserManager<User> userManager,
                     IUserStore<User> userStore,
@@ -30,7 +30,7 @@ namespace SimpleChatApp.Controllers
                     IOptionsMonitor<BearerTokenOptions> bearerTokenOptions,
                     TimeProvider timeProvider,
                     IUserHubContextManager userHubContextManager,
-                    IDbDataService dbDataService)
+                    IUserDataService dbUserDataService)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -38,7 +38,7 @@ namespace SimpleChatApp.Controllers
             _bearerTokenOptions = bearerTokenOptions;
             _timeProvider = timeProvider;
             _userHubContextManager = userHubContextManager;
-            _dbDataService = dbDataService;
+            _dbUserDataService = dbUserDataService;
         }
 
         [HttpPost]
@@ -53,7 +53,7 @@ namespace SimpleChatApp.Controllers
                 return CreateValidationProblem(result);
             }
 
-            await _dbDataService.CreateUserProfileAsync(user);
+            await _dbUserDataService.CreateUserProfileAsync(user);
 
             return TypedResults.Ok();
             // TODO: make register - login in 1 action?

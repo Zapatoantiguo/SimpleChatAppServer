@@ -12,13 +12,13 @@ namespace SimpleChatApp.Controllers
     [Route("api/[controller]")]
     public class SocietyController : ControllerBase
     {
-        IDbDataService _dbDataService;
+        IUserDataService _userDataService;
         UserManager<User> _userManager;
 
-        public SocietyController(IDbDataService dbDataService,
+        public SocietyController(IUserDataService userDataService,
                                  UserManager<User> userManager)
         {
-            _dbDataService = dbDataService;
+            _userDataService = userDataService;
             _userManager = userManager;
         }
 
@@ -31,7 +31,7 @@ namespace SimpleChatApp.Controllers
             {
                 return TypedResults.BadRequest();
             }
-            List<UserDto> users = await _dbDataService.GetUsersByPatternAsync(searchDto);
+            List<UserDto> users = await _userDataService.GetUsersByPatternAsync(searchDto);
 
             return TypedResults.Ok(users);
         }
@@ -46,7 +46,7 @@ namespace SimpleChatApp.Controllers
 
             var user = await _userManager.GetUserAsync(HttpContext.User);
 
-            var addedFriend = await _dbDataService.AddFriendAsync(user!, friend);
+            var addedFriend = await _userDataService.AddFriendAsync(user!, friend);
             if (addedFriend == null)
                 return TypedResults.NotFound();
 
@@ -63,7 +63,7 @@ namespace SimpleChatApp.Controllers
 
             var user = await _userManager.GetUserAsync(HttpContext.User);
 
-            var removedFriend = await _dbDataService.AddFriendAsync(user!, friend);
+            var removedFriend = await _userDataService.AddFriendAsync(user!, friend);
             if (removedFriend == null)
                 return TypedResults.NotFound();
 
@@ -77,7 +77,7 @@ namespace SimpleChatApp.Controllers
         {
             var user = await _userManager.GetUserAsync(HttpContext.User);
 
-            var friendsDtos = await _dbDataService.GetAllFriendsAsync(user!);
+            var friendsDtos = await _userDataService.GetAllFriendsAsync(user!);
             return friendsDtos;
         }
     }

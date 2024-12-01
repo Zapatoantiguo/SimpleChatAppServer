@@ -13,15 +13,24 @@ namespace SimpleChatApp.Hubs
     [Authorize]
     public class AppHub : Hub<IHubClient>
     {
-        IDbDataService _dbDataService;
+        IUserDataService _userDataService;
+        IChatDataService _chatDataService;
+        INotificationDataService _notificationDataService;
+        IMessageDataService _messageDataService;
         UserManager<User> _userManager;
         IUserHubContextManager _userHubContextManager;
 
-        public AppHub(IDbDataService dbDataService,
+        public AppHub(IUserDataService userDataService,
+            IChatDataService chatDataService,
+            INotificationDataService notificationDataService,
+            IMessageDataService messageDataService,
             UserManager<User> userManager,
             IUserHubContextManager userHubContextManager)
         {
-            _dbDataService = dbDataService;
+            _userDataService = userDataService;
+            _chatDataService = chatDataService;
+            _notificationDataService = notificationDataService;
+            _messageDataService = messageDataService;
             _userManager = userManager;
             _userHubContextManager = userHubContextManager;
         }
@@ -32,13 +41,13 @@ namespace SimpleChatApp.Hubs
 
             User user = (await _userManager.GetUserAsync(Context.User!))!;
 
-            var userChats = await _dbDataService.GetUserChatsAsync(user);
+            var userChats = await _chatDataService.GetUserChatsAsync(user);
             foreach (var chat in userChats)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, chat.Name);
             }
 
-            var invitations = await _dbDataService.GetInviteNotifications(Context.UserIdentifier!);
+            var invitations = await _notificationDataService.GetInviteNotifications(Context.UserIdentifier!);
             if (invitations.Count > 0)
             {
                 foreach (var invitation in invitations) // TODO: change bunch notifications sending ...
@@ -59,8 +68,8 @@ namespace SimpleChatApp.Hubs
         public async Task<int> InviteToChatRoom(string targetUserName, string chatRoomName)
         {
             // check if such user and chat exist ...
-            Task<User?> t1 = _dbDataService.GetUserByNameAsync(targetUserName);
-            Task<int?> t2 = _dbDataService.GetChatIdByName(chatRoomName);
+            Task<User?> t1 = _userDataService.GetUserByNameAsync(targetUserName);
+            Task<int?> t2 = _chatDataService.GetChatIdByName(chatRoomName);
 
             await Task.WhenAll(t1, t2);
             User? targetUser = t1.Result;
@@ -79,7 +88,7 @@ namespace SimpleChatApp.Hubs
                 TargetUser = targetUser
             };
 
-            var addedNotification = await _dbDataService.AddInviteNotificationAsync(notification);
+            var addedNotification = await _notificationDataService.AddInviteNotificationAsync(notification);
             if (addedNotification == null)
                 return -3;  // user is invited already
 
@@ -91,7 +100,7 @@ namespace SimpleChatApp.Hubs
         }
         public async Task<int> RespondToInvite(string chatRoomName, bool accept)
         {
-            List<InviteNotification> invites = await _dbDataService.GetInviteNotifications(Context.UserIdentifier!);
+            List<InviteNotification> invites = await _notificationDataService.GetInviteNotifications(Context.UserIdentifier!);
 
             var invitation = invites.SingleOrDefault(n => n.ChatRoomName == chatRoomName);
             if (invitation == null)
@@ -99,23 +108,23 @@ namespace SimpleChatApp.Hubs
 
             if (accept)
             {
-                var addedUser = await _dbDataService.AddUserToChatAsync(invitation.TargetId, chatRoomName);
+                var addedUser = await _chatDataService.AddUserToChatAsync(invitation.TargetId, chatRoomName);
 
                 // TODO: add processing of other current connections of this user 
                 await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomName);
             }
-            await _dbDataService.RemoveInviteNotificationAsync(invitation);
+            await _notificationDataService.RemoveInviteNotificationAsync(invitation);
             return 0;
         }
         public async Task<int> SendMessage(string chatRoomName, string message)
         {
-            var userIsInChat = await _dbDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
+            var userIsInChat = await _chatDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
             if (!userIsInChat)
                 return -1;  // caller is not in chat
 
             User caller = await _userManager.GetUserAsync(Context.User);
 
-            int chatId = (await _dbDataService.GetChatIdByName(chatRoomName)).Value;
+            int chatId = (await _chatDataService.GetChatIdByName(chatRoomName)).Value;
             var msg = new Message
             {
                 AuthorAlias = caller.UserName,
@@ -125,7 +134,7 @@ namespace SimpleChatApp.Hubs
                 SentAt = DateTime.UtcNow
             };
 
-            var addedMsg = await _dbDataService.AddMessageAsync(msg);
+            var addedMsg = await _messageDataService.AddMessageAsync(msg);
 
 
             MessageDto msgDto = new()
@@ -140,13 +149,13 @@ namespace SimpleChatApp.Hubs
 
         public async Task<int> LeaveChat(string chatRoomName)
         {
-            var userIsInChat = await _dbDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
+            var userIsInChat = await _chatDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
             if (!userIsInChat)
                 return -1;  // caller is not in chat
 
             User caller = await _userManager.GetUserAsync(Context.User);
 
-            var removedUser = _dbDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
+            var removedUser = _chatDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
             await Clients.Group(chatRoomName).OnUserLeavedChat(caller.UserName, chatRoomName);
 
             return 0;
