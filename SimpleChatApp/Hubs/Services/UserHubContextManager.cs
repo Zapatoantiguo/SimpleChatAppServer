@@ -72,5 +72,15 @@ namespace SimpleChatApp.Hubs.Services
                         _groupManager.AddToGroupAsync(ctx.ConnectionId, group);
             }
         }
+
+        public List<HubCallerContext>? GetUserHubContexts(string userId)
+        {
+            List<HubCallerContext>? list = null;
+            lock ( _dict)
+            {
+                _dict.TryGetValue(userId, out list);
+            }
+            return list;
+        }
     }
 }

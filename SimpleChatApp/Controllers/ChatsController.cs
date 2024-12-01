@@ -17,12 +17,15 @@ namespace SimpleChatApp.Controllers
     {
         UserManager<User> _userManager;
         IDbDataService _dbDataService;
+        IUserHubContextManager _userHubContextManager;
 
         public ChatsController(UserManager<User> userManager,
-                               IDbDataService dbDataService)
+                               IDbDataService dbDataService,
+                               IUserHubContextManager userHubContextManager)
         {
             _userManager = userManager;
             _dbDataService = dbDataService;
+            _userHubContextManager = userHubContextManager;
         }
         [HttpPost]
         [Route("CreateChat")]
@@ -38,6 +41,13 @@ namespace SimpleChatApp.Controllers
             ChatRoomDto created;
             created = await _dbDataService.CreateChatAsync(user, chatDto);
 
+            var userHubConnections = _userHubContextManager.GetUserHubContexts(user.Id);
+            if (userHubConnections?.Count > 0)
+            {
+                List<string> groupNames = new() { created.Name };
+                _userHubContextManager.AddToGroups(user.Id, groupNames);
+            }
+                
             return TypedResults.Ok(created);
         }
         [HttpGet]
@@ -51,7 +61,7 @@ namespace SimpleChatApp.Controllers
                 throw new ArgumentNullException(nameof(user));
             }
 
-            var result = await _dbDataService.GetUserChats(user);
+            var result = await _dbDataService.GetUserChatsAsync(user);
             return result;
         }
         [HttpGet]
@@ -65,7 +75,7 @@ namespace SimpleChatApp.Controllers
                 throw new ArgumentNullException(nameof(user));
             }
 
-            var result = await _dbDataService.GetChatMembers(user, chatRoomName);
+            var result = await _dbDataService.GetChatMembersAsync(user, chatRoomName);
 
             if (result == null)
                 return TypedResults.NotFound();
@@ -88,7 +98,7 @@ namespace SimpleChatApp.Controllers
                 throw new ArgumentNullException(nameof(user));
             }
 
-            var messages = await _dbDataService.GetLastMessages(user, chatRoomName, pageNumber, pageSize);
+            var messages = await _dbDataService.GetLastMessagesAsync(user, chatRoomName, pageNumber, pageSize);
 
             if (messages == null)
                 return TypedResults.NotFound();

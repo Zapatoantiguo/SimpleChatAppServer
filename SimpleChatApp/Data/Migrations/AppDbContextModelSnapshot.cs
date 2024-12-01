@@ -175,7 +175,7 @@ namespace SimpleChatApp.Data.Migrations
 
                     b.HasKey("ChatRoomId");
 
-                    b.ToTable("ChatRooms");
+                    b.ToTable("ChatRooms", (string)null);
                 });
 
             modelBuilder.Entity("SimpleChatApp.Models.Message", b =>
@@ -209,7 +209,7 @@ namespace SimpleChatApp.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("SimpleChatApp.Models.User", b =>
@@ -295,7 +295,7 @@ namespace SimpleChatApp.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserChatRoom");
+                    b.ToTable("UserChatRoom", (string)null);
                 });
 
             modelBuilder.Entity("SimpleChatApp.Models.UserProfile", b =>
@@ -325,7 +325,7 @@ namespace SimpleChatApp.Data.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Profiles");
+                    b.ToTable("Profiles", (string)null);
                 });
 
             modelBuilder.Entity("UserUser", b =>
@@ -340,7 +340,7 @@ namespace SimpleChatApp.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserUser");
+                    b.ToTable("UserUser", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
