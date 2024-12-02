@@ -9,9 +9,10 @@ namespace SimpleChatApp.Hubs.Services
         private readonly Dictionary<string, List<HubCallerContext>> _dict = new Dictionary<string, List<HubCallerContext>>();
         private readonly IGroupManager _groupManager;
 
-        public UserHubContextManager(IGroupManager groupManager)
+        public UserHubContextManager(IHubContext<AppHub> hubContext)
         {
-            _groupManager = groupManager;
+
+            _groupManager = hubContext.Groups;
         }
 
         public void AddUserHubContext(string userId, HubCallerContext context)

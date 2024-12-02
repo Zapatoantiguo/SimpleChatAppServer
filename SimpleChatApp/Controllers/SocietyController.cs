@@ -23,15 +23,25 @@ namespace SimpleChatApp.Controllers
         }
 
         [HttpGet]
-        [Route("GetUsers")]
+        [Route("FindUsers")]
         [Authorize]
-        public async Task<Results<Ok<List<UserDto>>, BadRequest>> GetUsers([FromBody] UserSearchDto searchDto)
+        public async Task<Results<Ok<List<UserDto>>, BadRequest>> FindUsers([FromBody] UserSearchDto searchDto)
         {
             if (!ModelState.IsValid)
             {
                 return TypedResults.BadRequest();
             }
-            List<UserDto> users = await _userDataService.GetUsersByPatternAsync(searchDto);
+            List<UserDto> users = await _userDataService.GetUsersViaFilterAsync(searchDto);
+
+            return TypedResults.Ok(users);
+        }
+
+        [HttpGet]
+        [Route("GetAllUsers")]
+        [Authorize]
+        public async Task<Results<Ok<List<UserDto>>, BadRequest>> GetAllUsers()
+        {
+            List<UserDto> users = await _userDataService.GetAllUsersAsync();
 
             return TypedResults.Ok(users);
         }
@@ -63,7 +73,7 @@ namespace SimpleChatApp.Controllers
 
             var user = await _userManager.GetUserAsync(HttpContext.User);
 
-            var removedFriend = await _userDataService.AddFriendAsync(user!, friend);
+            var removedFriend = await _userDataService.RemoveFriendAsync(user!, friend);
             if (removedFriend == null)
                 return TypedResults.NotFound();
 

@@ -92,15 +92,24 @@ namespace SimpleChatApp.Data.Services
             return result;
         }
 
-        public async Task<List<UserDto>> GetUsersByPatternAsync(UserSearchDto pattern)
+        public async Task<List<UserDto>> GetUsersViaFilterAsync(UserSearchDto filter)
         {
-            Task<List<UserDto>> result = _context.Users
-                                   .Where(!string.IsNullOrEmpty(pattern.NamePattern) ?
-                                      u => u.UserName!.StartsWith(pattern.NamePattern) : u => true)
-                                   .Select(u => new UserDto { Name = u.UserName! })
+            List<UserDto> result = await _context.Users
+                                   .Where(!string.IsNullOrEmpty(filter.NamePattern) ?
+                                      u => u.UserName!.StartsWith(filter.NamePattern) : u => true)
+                                   .Select(u => new UserDto { Name = u.UserName!, IsAnonimous = u.IsAnonimous })
                                    .ToListAsync();
 
-            return await result;
+            return result;
+        }
+
+        public async Task<List<UserDto>> GetAllUsersAsync()
+        {
+            // TODO: add pagination
+            List<UserDto> result = await _context.Users
+                                   .Select(u => new UserDto { Name = u.UserName!, IsAnonimous = u.IsAnonimous })
+                                   .ToListAsync();
+            return result;
         }
 
         public async Task<bool> IsUserExist(string userName)
@@ -134,13 +143,15 @@ namespace SimpleChatApp.Data.Services
             return friend;
         }
 
-        public async Task<UserProfileDto> UpdateUserProfileAsync(User user, UserProfileDto profile)
+        public async Task<UserProfileDto?> UpdateUserProfileAsync(User user, UserProfileDto profile)
         {
-            var nickExists = _context.Profiles.Where(p => p.Nickname == profile.Nickname).Any();
+            var nickExists = _context.Profiles
+                .Where(p => p.Nickname == profile.Nickname && p.UserId != user.Id)
+                .Any();
+
             if (nickExists)
-            {
-                throw new InvalidOperationException($"Attemption to set User Profile Nickname which exists already: {profile.Nickname}");
-            }
+                return null;    
+
             var newProfile = _context.Profiles.Single(up => up.UserId == user.Id);
             newProfile.Nickname = profile.Nickname;
             newProfile.Bio = profile.Bio;

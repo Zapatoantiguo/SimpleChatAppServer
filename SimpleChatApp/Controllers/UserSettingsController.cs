@@ -24,13 +24,17 @@ namespace SimpleChatApp.Controllers
         [HttpGet]
         [Authorize]
         [Route("GetProfile")]
-        public async Task<UserProfileDto> GetProfile()
+        public async Task<UserProfileDto?> GetProfile()
         {
             User? user = await _userManager.GetUserAsync(HttpContext.User);
             if (user is null)
             {
                 throw new ArgumentNullException(nameof(user));
             }
+
+            if (user.IsAnonimous)
+                return null;
+
             var profile = await _userDataService.GetUserProfileAsync(user.Id);
             return profile!;
         }
@@ -50,7 +54,13 @@ namespace SimpleChatApp.Controllers
                 throw new ArgumentNullException(nameof(user));
             }
 
-            var pr =await _userDataService.UpdateUserProfileAsync(user, profile);
+            if (user.IsAnonimous)
+                return TypedResults.BadRequest();
+
+            var pr = await _userDataService.UpdateUserProfileAsync(user, profile);
+            if (pr == null)
+                return TypedResults.BadRequest();
+
             return TypedResults.Ok(pr);
         }
     }

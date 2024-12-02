@@ -45,7 +45,7 @@ namespace SimpleChatApp.Controllers
         [Route("register")]
         public async Task<Results<Ok, ValidationProblem>> Register([FromBody] RegisterDto regRequest)
         {
-            var user = new User() { UserName = regRequest.Username, IsAnonimous = false };
+            var user = new User() { UserName = regRequest.Username, Email = regRequest.Email, IsAnonimous = false };
             var result = await _userManager.CreateAsync(user, regRequest.Password);
 
             if (!result.Succeeded)
@@ -114,7 +114,6 @@ namespace SimpleChatApp.Controllers
 
             _userHubContextManager.Disconnect(user.Id);
             await _signInManager.SignOutAsync();
-
 
             if (user.IsAnonimous)
             {

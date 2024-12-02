@@ -16,7 +16,10 @@ namespace SimpleChatApp.Data
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
-                .LogTo(Console.WriteLine);
+                .LogTo(Console.WriteLine, 
+                    new[] {DbLoggerCategory.Query.Name},
+                LogLevel.Information)
+                .EnableSensitiveDataLogging();
 
             base.OnConfiguring(optionsBuilder);
         }
