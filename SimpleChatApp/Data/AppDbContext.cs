@@ -15,6 +15,9 @@ namespace SimpleChatApp.Data
         public DbSet<InviteNotification> InviteNotifications { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            optionsBuilder
+                .LogTo(Console.WriteLine);
+
             base.OnConfiguring(optionsBuilder);
         }
         protected override void OnModelCreating(ModelBuilder builder)
