@@ -9,8 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-var connString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlServer(connString));
+var connString = builder.Configuration.GetValue<string>("ChatAppConnStr");
+builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connString));
 
 builder.Services.AddIdentityApiEndpoints<User>().AddEntityFrameworkStores<AppDbContext>();
 
