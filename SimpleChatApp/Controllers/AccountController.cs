@@ -145,6 +145,22 @@ namespace SimpleChatApp.Controllers
             return TypedResults.SignIn(newPrincipal, authenticationScheme: IdentityConstants.BearerScheme);
         }
 
+        [HttpPost]
+        [Route("DeleteAccount")]
+        [Authorize]
+        public async Task<IResult> DeleteAccount()
+        {
+            User? user = await _userManager.GetUserAsync(HttpContext.User);
+            if (user == null)
+            {
+                return TypedResults.Unauthorized();
+            }
+
+            _userHubContextManager.Disconnect(user.Id);
+            await _userManager.DeleteAsync(user);
+            return TypedResults.Ok();
+        }
+
         private static ValidationProblem CreateValidationProblem(IdentityResult result)
         {
             // We expect a single error code and description in the normal case.

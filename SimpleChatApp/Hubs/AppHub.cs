@@ -48,13 +48,12 @@ namespace SimpleChatApp.Hubs
             }
 
             var invitations = await _notificationDataService.GetInviteNotifications(Context.UserIdentifier!);
-            if (invitations.Count > 0)
+
+            foreach (var invitation in invitations) // TODO: change bunch notifications sending? ...
             {
-                foreach (var invitation in invitations) // TODO: change bunch notifications sending ...
-                {
-                    await Clients.Caller.OnInvited(invitation.SourceUserName, invitation.ChatRoomName);
-                }
+                await Clients.Caller.OnInvited(invitation.SourceUserName, invitation.ChatRoomName);
             }
+
             await base.OnConnectedAsync();
             return;
         }
@@ -67,17 +66,19 @@ namespace SimpleChatApp.Hubs
 
         public async Task<int> InviteToChatRoom(string targetUserName, string chatRoomName)
         {
-            // check if such user and chat exist ...
-            Task<User?> t1 = _userDataService.GetUserByNameAsync(targetUserName);
-            Task<int?> t2 = _chatDataService.GetChatIdByName(chatRoomName);
+            // check if such user and chat exist and target not in chat ...
+            User? targetUser = await _userDataService.GetUserByNameAsync(targetUserName);
+            if (targetUser == null) 
+                return -1; // TODO: here and everywhere in hub: find a better solution for return statuses to clients
 
-            await Task.WhenAll(t1, t2);
-            User? targetUser = t1.Result;
-            if (targetUser == null)
-                return -1;  // TODO: here and everywhere in hub: find a better solution for return statuses to clients
-            if (t2.Result == null)
+            int? chatId = await _chatDataService.GetChatIdByName(chatRoomName);
+            if (chatId == null)
                 return -2;
-            
+
+            bool targetInChat = await _chatDataService.IsUserInChat(targetUser.Id, chatRoomName);
+            if (targetInChat)
+                return -3;
+
             // Register invitation: save notification with body in db ...
             User caller = await _userManager.GetUserAsync(Context.User);
 
@@ -85,16 +86,19 @@ namespace SimpleChatApp.Hubs
             {
                 ChatRoomName = chatRoomName,
                 SourceUserName = caller.UserName,
-                TargetUser = targetUser
+                TargetUser = targetUser,
+                TargetId = targetUser.Id
             };
-
+            
             var addedNotification = await _notificationDataService.AddInviteNotificationAsync(notification);
             if (addedNotification == null)
-                return -3;  // user is invited already
+                return -4;  // user is invited already
 
             // Call a method to send invitation to a target if one is connected
             if (Clients.User(targetUser.Id) is not null)
+            {
                 await Clients.User(targetUser.Id).OnInvited(caller.UserName!, chatRoomName);
+            }
 
             return 0;
         }
@@ -112,6 +116,7 @@ namespace SimpleChatApp.Hubs
 
                 // TODO: add processing of other current connections of this user 
                 await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomName);
+                await Clients.OthersInGroup(chatRoomName).OnUserJoinedChat(addedUser.UserName, chatRoomName);
             }
             await _notificationDataService.RemoveInviteNotificationAsync(invitation);
             return 0;
@@ -155,7 +160,11 @@ namespace SimpleChatApp.Hubs
 
             User caller = await _userManager.GetUserAsync(Context.User);
 
-            var removedUser = _chatDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
+            var removedUser = await _chatDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
+            if (removedUser == null)
+                return -2;
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, chatRoomName);
             await Clients.Group(chatRoomName).OnUserLeavedChat(caller.UserName, chatRoomName);
 
             return 0;

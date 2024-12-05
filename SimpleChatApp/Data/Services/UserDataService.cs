@@ -16,23 +16,27 @@ namespace SimpleChatApp.Data.Services
             if (user.UserName == friend.UserName)
                 return null;
 
-            var friendUser = await _context.Users
-                .Where(u => u.UserName == friend.UserName)
-                .SingleOrDefaultAsync();
+            var friendId = await _context.Users
+                           .Where(u => u.UserName == friend.UserName)
+                           .Select(u => u.Id)
+                           .SingleOrDefaultAsync();
 
-            if (friendUser == null)
+            if (friendId == null)
                 return null;
 
-            var currentFriendsNames = (await _context.Users
-                          .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new { UserName = fr.UserName! }))
-                          .SingleOrDefaultAsync())?.ToList();
+            var existingFriendship = await _context.Friendships
+                .Where(fs => fs.SubjectId == user.Id && fs.ObjectId == friendId)
+                .SingleOrDefaultAsync();
 
-            if (currentFriendsNames != null && currentFriendsNames.Any(fr => fr.UserName == friend.UserName))
-                return null;    // TODO: find a more flexible way to return undesirable result
+            if (existingFriendship != null)
+                return null;
 
-            user.Friends.Add(friendUser);
+            _context.Friendships.Add(new Friendship
+            {
+                SubjectId = user.Id,
+                ObjectId = friendId
+            });
+
             await _context.SaveChangesAsync();
             return friend;
         }
@@ -62,8 +66,8 @@ namespace SimpleChatApp.Data.Services
         {
             var friends = (await _context.Users
                           .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new FriendDto { UserName = fr.UserName! }))
+                          .Include(u => u.FriendsObjects)
+                          .Select(u => u.FriendsObjects.Select(fr => new FriendDto { UserName = fr.UserName! }))
                           .SingleOrDefaultAsync())?.ToList();
 
             return friends ?? new List<FriendDto>();
@@ -122,23 +126,23 @@ namespace SimpleChatApp.Data.Services
             if (user.UserName == friend.UserName)
                 return null;
 
-            var friendUser = await _context.Users
+            var friendId = await _context.Users
                 .Where(u => u.UserName == friend.UserName)
+                .Select(u => u.Id)
                 .SingleOrDefaultAsync();
 
-            if (friendUser == null)
+            if (friendId == null)
                 return null;
 
-            var currentFriendsNames = (await _context.Users
-                          .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new { UserName = fr.UserName! }))
-                          .SingleOrDefaultAsync())?.ToList();
+            var friendship = await _context.Friendships
+                .Where(fs => fs.SubjectId == user.Id && fs.ObjectId == friendId)
+                .SingleOrDefaultAsync();
 
-            if (currentFriendsNames != null && currentFriendsNames.Any(fr => fr.UserName == friend.UserName))
-                return null;    // TODO: find a more flexible way to return undesirable result
+            if (friendship == null)
+                return null;
 
-            user.Friends.Remove(friendUser);
+            _context.Friendships.Remove(friendship);
+
             await _context.SaveChangesAsync();
             return friend;
         }
@@ -150,7 +154,7 @@ namespace SimpleChatApp.Data.Services
                 .Any();
 
             if (nickExists)
-                return null;    
+                return null;
 
             var newProfile = _context.Profiles.Single(up => up.UserId == user.Id);
             newProfile.Nickname = profile.Nickname;

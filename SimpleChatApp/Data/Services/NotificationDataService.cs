@@ -12,10 +12,10 @@ namespace SimpleChatApp.Data.Services
         }
         public async Task<InviteNotification?> AddInviteNotificationAsync(InviteNotification notification)
         {
-            var existingEntry = await _context.InviteNotifications
-                .FirstOrDefaultAsync(e => e.TargetId == notification.TargetId
-                                     && e.ChatRoomName == notification.ChatRoomName);
-            if (existingEntry != null)
+            var entryExists = await _context.InviteNotifications
+                .AnyAsync(e => e.TargetId == notification.TargetId && e.ChatRoomName == notification.ChatRoomName);
+
+            if (entryExists)
                 return null;
 
             _context.InviteNotifications.Add(notification);

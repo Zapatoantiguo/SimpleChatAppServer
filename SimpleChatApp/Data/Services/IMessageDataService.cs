@@ -5,7 +5,7 @@ namespace SimpleChatApp.Data.Services
 {
     public interface IMessageDataService
     {
-        public Task<List<MessageDto>?> GetLastMessagesAsync(User user, string chatRoomName, uint pageNumber, uint pageSize);
+        public Task<List<MessageDto>?> GetLastMessagesAsync(User user, string chatRoomName, int pageNumber, int pageSize);
         public Task<Message?> AddMessageAsync(Message message);
     }
 }

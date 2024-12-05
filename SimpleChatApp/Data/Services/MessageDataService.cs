@@ -20,7 +20,7 @@ namespace SimpleChatApp.Data.Services
             return message;
         }
 
-        public async Task<List<MessageDto>?> GetLastMessagesAsync(User user, string chatRoomName, uint pageNumber, uint pageSize)
+        public async Task<List<MessageDto>?> GetLastMessagesAsync(User user, string chatRoomName, int pageNumber, int pageSize)
         {
             // TODO: create a separate method for chat existence and user membership checking? (M1)
             var chat = await _context.ChatRooms
@@ -30,13 +30,14 @@ namespace SimpleChatApp.Data.Services
             if (chat == null || !chat.Users.Any(u => u.UserName == user.UserName))
                 return null;
 
-            int startIndex = (int)(pageNumber * pageSize);
+            int startIndex = pageNumber * pageSize;
             int endIndex = startIndex + (int)pageSize;
 
             var messages = await _context.Messages
                 .Where(msg => msg.ChatRoomId == chat.ChatRoomId)
                 .OrderByDescending(msg => msg.SentAt)
-                .Take(startIndex..endIndex)
+                .Skip(startIndex)
+                .Take(pageSize) 
                 .Select(msg => new MessageDto
                 {
                     AuthorAlias = msg.AuthorAlias,

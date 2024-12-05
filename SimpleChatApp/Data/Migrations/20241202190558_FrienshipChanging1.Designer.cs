@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SimpleChatApp.Data;
@@ -11,9 +12,11 @@ using SimpleChatApp.Data;
 namespace SimpleChatApp.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241202190558_FrienshipChanging1")]
+    partial class FrienshipChanging1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -178,7 +181,7 @@ namespace SimpleChatApp.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ChatRoomId"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -188,9 +191,6 @@ namespace SimpleChatApp.Data.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("ChatRoomId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("ChatRooms");
                 });
@@ -215,7 +215,7 @@ namespace SimpleChatApp.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("SentAt")
-                        .HasColumnType("timestamp without time zone");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UserId")
                         .HasColumnType("text");
@@ -332,9 +332,7 @@ namespace SimpleChatApp.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("JoinedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
-                        .HasDefaultValueSql("now() at time zone 'utc'");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("ChatRoomId", "UserId");
 
@@ -453,7 +451,7 @@ namespace SimpleChatApp.Data.Migrations
                     b.HasOne("SimpleChatApp.Models.User", "Author")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Author");
                 });

@@ -37,7 +37,7 @@ namespace SimpleChatApp.Data.Services
             return user;
         }
 
-        public async Task<ChatRoomDto> CreateChatAsync(User creator, ChatRoomDto chatDto)
+        public async Task<ChatRoomDto?> CreateChatAsync(User creator, ChatRoomDto chatDto)
         {
             ArgumentNullException.ThrowIfNull(creator);
             ArgumentNullException.ThrowIfNull(chatDto);
@@ -49,14 +49,20 @@ namespace SimpleChatApp.Data.Services
                 Users = new List<User> { creator }
             };
 
+            var nameIsNotUnique = await _context.ChatRooms
+                .AnyAsync(c => c.Name == chatDto.Name);
+
+            if (nameIsNotUnique)
+                return null;
+
             _context.ChatRooms.Add(chat);
             await _context.SaveChangesAsync();
 
             // TODO: implement join table update without extra db roundtrip if possible
-            UserChatRoom joinTable = chat.UserChatRoom?.SingleOrDefault(uc => uc.UserId == creator.Id);
-            if (joinTable == null) { throw new NullReferenceException(nameof(joinTable)); }
-            joinTable.JoinedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+            //UserChatRoom joinTable = chat.UserChatRoom?.SingleOrDefault(uc => uc.UserId == creator.Id);
+            //if (joinTable == null) { throw new NullReferenceException(nameof(joinTable)); }
+            //joinTable.JoinedAt = DateTime.UtcNow;
+            //await _context.SaveChangesAsync();
 
             return new ChatRoomDto
             {

@@ -33,7 +33,7 @@ namespace SimpleChatApp.Controllers
         [HttpPost]
         [Route("CreateChat")]
         [Authorize]
-        public async Task<Results<Ok<ChatRoomDto>, ValidationProblem>> CreateChat(ChatRoomDto chatDto)
+        public async Task<Results<Ok<ChatRoomDto>, BadRequest>> CreateChat(ChatRoomDto chatDto)
         {
             // TODO: add chat room name validation
             User? user = await _userManager.GetUserAsync(HttpContext.User);
@@ -41,17 +41,19 @@ namespace SimpleChatApp.Controllers
             {
                 throw new ArgumentNullException(nameof(user));
             }
-            ChatRoomDto created;
-            created = await _chatDataService.CreateChatAsync(user, chatDto);
+
+            var createdChatDto = await _chatDataService.CreateChatAsync(user, chatDto);
+            if (createdChatDto == null)
+                return TypedResults.BadRequest();
 
             var userHubConnections = _userHubContextManager.GetUserHubContexts(user.Id);
             if (userHubConnections?.Count > 0)
             {
-                List<string> groupNames = new() { created.Name };
+                List<string> groupNames = new() { createdChatDto.Name };
                 _userHubContextManager.AddToGroups(user.Id, groupNames);
             }
                 
-            return TypedResults.Ok(created);
+            return TypedResults.Ok(createdChatDto);
         }
         [HttpGet]
         [Route("GetUserChats")]
@@ -89,7 +91,7 @@ namespace SimpleChatApp.Controllers
         [Route("GetLastMessages")]
         [Authorize]
         public async Task<Results<Ok<List<MessageDto>>, NotFound, BadRequest>> GetLastMessages
-            (string chatRoomName, uint pageNumber, uint pageSize)
+            (string chatRoomName, int pageNumber, int pageSize)
         {
             // TODO: add pageSize limit
             if (pageSize == 0)

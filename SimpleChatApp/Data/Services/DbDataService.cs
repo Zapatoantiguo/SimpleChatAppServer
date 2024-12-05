@@ -119,14 +119,14 @@ namespace SimpleChatApp.Data.Services
 
             var currentFriendsNames = (await _context.Users
                           .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new { UserName = fr.UserName! }))
+                          .Include(u => u.FriendsObjects)
+                          .Select(u => u.FriendsObjects.Select(fr => new { UserName = fr.UserName! }))
                           .SingleOrDefaultAsync())?.ToList();
 
             if (currentFriendsNames != null && currentFriendsNames.Any(fr => fr.UserName == friend.UserName))
                 return null;    // TODO: find a more flexible way to return undesirable result
 
-            user.Friends.Add(friendUser);
+            user.FriendsObjects.Add(friendUser);
             await _context.SaveChangesAsync();
             return friend;
         }
@@ -145,14 +145,14 @@ namespace SimpleChatApp.Data.Services
 
             var currentFriendsNames = (await _context.Users
                           .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new { UserName = fr.UserName! }))
+                          .Include(u => u.FriendsObjects)
+                          .Select(u => u.FriendsObjects.Select(fr => new { UserName = fr.UserName! }))
                           .SingleOrDefaultAsync())?.ToList();
 
             if (currentFriendsNames != null && currentFriendsNames.Any(fr => fr.UserName == friend.UserName))
                 return null;    // TODO: find a more flexible way to return undesirable result
 
-            user.Friends.Remove(friendUser);
+            user.FriendsObjects.Remove(friendUser);
             await _context.SaveChangesAsync();
             return friend;
         }
@@ -161,8 +161,8 @@ namespace SimpleChatApp.Data.Services
         {
             var friends = (await _context.Users
                           .Where(u => u.UserName == user.UserName)
-                          .Include(u => u.Friends)
-                          .Select(u => u.Friends.Select(fr => new FriendDto { UserName = fr.UserName! }))
+                          .Include(u => u.FriendsObjects)
+                          .Select(u => u.FriendsObjects.Select(fr => new FriendDto { UserName = fr.UserName! }))
                           .SingleOrDefaultAsync())?.ToList();
 
             return friends ?? new List<FriendDto>();

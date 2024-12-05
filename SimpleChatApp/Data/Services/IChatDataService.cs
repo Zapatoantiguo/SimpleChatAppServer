@@ -5,7 +5,7 @@ namespace SimpleChatApp.Data.Services
 {
     public interface IChatDataService
     {
-        public Task<ChatRoomDto> CreateChatAsync(User creator, ChatRoomDto chatDto);
+        public Task<ChatRoomDto?> CreateChatAsync(User creator, ChatRoomDto chatDto);
         public Task<User?> AddUserToChatAsync(string userId, string chatRoomName);
         public Task<User?> RemoveUserFromChatAsync(string userId, string chatRoomName);
         public Task<List<UserDto>?> GetChatMembersAsync(User user, string chatRoomName);
