@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using SimpleChatApp.Background;
 using SimpleChatApp.Data;
 using SimpleChatApp.Data.Services;
 using SimpleChatApp.ErrorHandling;
@@ -24,6 +25,7 @@ builder.Services.AddScoped<INotificationDataService, NotificationDataService>();
 builder.Services.AddScoped<IMessageDataService, MessageDataService>();
 builder.Services.AddSingleton<IUserHubContextManager, UserHubContextManager>();
 
+builder.Services.AddHostedService<CleanDbBackgroundTask>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();

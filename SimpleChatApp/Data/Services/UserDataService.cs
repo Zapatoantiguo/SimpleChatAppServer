@@ -164,5 +164,11 @@ namespace SimpleChatApp.Data.Services
 
             return profile;
         }
+
+        public async Task<bool> CheckIsFriend(string friendSubjId, string friendObjId)
+        {
+            return await _context.Friendships
+                .AnyAsync(fs => fs.SubjectId == friendSubjId && fs.ObjectId == friendObjId);
+        }
     }
 }

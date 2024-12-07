@@ -80,19 +80,32 @@ namespace SimpleChatApp.Hubs
                 return -3;
 
             // Register invitation: save notification with body in db ...
-            User caller = await _userManager.GetUserAsync(Context.User);
+            User caller = (await _userManager.GetUserAsync(Context.User!))!;
+
+            UserProfileDto? targetProfile = await _userDataService.GetUserProfileAsync(targetUser.Id);
+            if (targetProfile?.InventionOptions == ChatInventionOptions.FriendsOnly)
+            {
+                bool callerIsFriend = await _userDataService.CheckIsFriend(targetUser.Id, caller.Id);
+                if (!callerIsFriend)
+                    return -4;
+            }
+            else if (targetProfile?.InventionOptions == ChatInventionOptions.ResidentsOnly)
+            {
+                if (caller.IsAnonimous)
+                    return -5;
+            }
 
             InviteNotification notification = new()
             {
                 ChatRoomName = chatRoomName,
-                SourceUserName = caller.UserName,
+                SourceUserName = caller.UserName!,
                 TargetUser = targetUser,
                 TargetId = targetUser.Id
             };
             
             var addedNotification = await _notificationDataService.AddInviteNotificationAsync(notification);
             if (addedNotification == null)
-                return -4;  // user is invited already
+                return -6;  // user is invited already
 
             // Call a method to send invitation to a target if one is connected
             if (Clients.User(targetUser.Id) is not null)

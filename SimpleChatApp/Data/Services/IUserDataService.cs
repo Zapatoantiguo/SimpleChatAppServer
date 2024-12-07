@@ -14,6 +14,7 @@ namespace SimpleChatApp.Data.Services
         public Task<FriendDto?> AddFriendAsync(User user, FriendDto friend);
         public Task<FriendDto?> RemoveFriendAsync(User user, FriendDto friend);
         public Task<List<FriendDto>> GetAllFriendsAsync(User user);
+        public Task<bool> CheckIsFriend(string friendSubjId, string friendObjId);
         public Task<bool> IsUserExist(string userName);
 
     }
