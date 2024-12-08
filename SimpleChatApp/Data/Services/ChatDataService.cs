@@ -38,16 +38,19 @@ namespace SimpleChatApp.Data.Services
             return user;
         }
 
-        public async Task<ChatRoomDto?> CreateChatAsync(User creator, ChatRoomDto chatDto)
+        public async Task<ChatRoomDto?> CreateChatAsync(string creatorId, ChatRoomDto chatDto)
         {
-            ArgumentNullException.ThrowIfNull(creator);
+            ArgumentNullException.ThrowIfNull(creatorId);
             ArgumentNullException.ThrowIfNull(chatDto);
 
             var nameIsNotUnique = await _context.ChatRooms
                 .AnyAsync(c => c.Name == chatDto.Name);
 
-            if (nameIsNotUnique)
-                return null;
+            if (nameIsNotUnique) return null;
+
+
+            var creator = await _context.Users.SingleOrDefaultAsync(u => u.Id == creatorId);
+            if (creator == null) return null;
 
             var chat = new ChatRoom
             {
@@ -73,13 +76,15 @@ namespace SimpleChatApp.Data.Services
             return chat?.ChatRoomId;
         }
 
-        public async Task<List<UserDto>?> GetChatMembersAsync(User requester, string chatRoomName)
+        public async Task<List<UserDto>?> GetChatMembersAsync(string requesterId, string chatRoomName)
         {
             var chat = await _context.ChatRooms
                 .Include(ch => ch.Users)
                 .SingleOrDefaultAsync(ch => ch.Name == chatRoomName);
 
-            if (chat == null || !chat.Users.Any(u => u.UserName == requester.UserName))
+            if (chat == null) return null;
+
+            if (!chat.Users.Any(u => u.Id == requesterId))
                 return null;
 
             var result = chat.Users
@@ -89,10 +94,10 @@ namespace SimpleChatApp.Data.Services
             return result;
         }
 
-        public async Task<List<ChatRoomDto>> GetUserChatsAsync(User user)
+        public async Task<List<ChatRoomDto>> GetUserChatsAsync(string userId)
         {
             var userChats = (await _context.Users
-                .Where(u => u.UserName == user.UserName)
+                .Where(u => u.Id == userId)
                 .Include(u => u.ChatRooms)
                 .Select(u => u.ChatRooms.Select(chat => new ChatRoomDto { Name = chat.Name, Description = chat.Description }))
                 .SingleOrDefaultAsync())?.ToList();

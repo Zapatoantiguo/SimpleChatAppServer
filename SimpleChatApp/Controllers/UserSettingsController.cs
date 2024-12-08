@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SimpleChatApp.Data.Services;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
+using System.Security.Claims;
 
 namespace SimpleChatApp.Controllers
 {
@@ -13,12 +14,9 @@ namespace SimpleChatApp.Controllers
     public class UserSettingsController : ControllerBase
     {
         IUserDataService _userDataService;
-        UserManager<User> _userManager;
-        public UserSettingsController(IUserDataService userDataService,
-                                      UserManager<User> userManager)
+        public UserSettingsController(IUserDataService userDataService)
         {
             _userDataService = userDataService;
-            _userManager = userManager;
         }
 
         [HttpGet]
@@ -26,16 +24,8 @@ namespace SimpleChatApp.Controllers
         [Route("GetProfile")]
         public async Task<UserProfileDto?> GetProfile()
         {
-            User? user = await _userManager.GetUserAsync(HttpContext.User);
-            if (user is null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            if (user.IsAnonimous)
-                return null;
-
-            var profile = await _userDataService.GetUserProfileAsync(user.Id);
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var profile = await _userDataService.GetUserProfileAsync(userId);
             return profile!;
         }
 
@@ -44,20 +34,9 @@ namespace SimpleChatApp.Controllers
         [Route("UpdateProfile")]
         public async Task<Results<Ok<UserProfileDto>, BadRequest>> UpdateProfile([FromBody] UserProfileDto profile)
         {
-            if (!ModelState.IsValid)
-                return TypedResults.BadRequest();
-            // TODO: add validation
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            User? user = await _userManager.GetUserAsync(HttpContext.User);
-            if (user is null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            if (user.IsAnonimous)
-                return TypedResults.BadRequest();
-
-            var pr = await _userDataService.UpdateUserProfileAsync(user, profile);
+            var pr = await _userDataService.UpdateUserProfileAsync(userId, profile);
             if (pr == null)
                 return TypedResults.BadRequest();
 

@@ -6,6 +6,7 @@ using SimpleChatApp.Hubs.Services;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
 using SimpleChatApp.Models.Notifications;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace SimpleChatApp.Hubs
@@ -39,9 +40,8 @@ namespace SimpleChatApp.Hubs
         {
             _userHubContextManager.AddUserHubContext(Context.UserIdentifier!, Context);
 
-            User user = (await _userManager.GetUserAsync(Context.User!))!;
-
-            var userChats = await _chatDataService.GetUserChatsAsync(user);
+            string userId = Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            var userChats = await _chatDataService.GetUserChatsAsync(userId);
             foreach (var chat in userChats)
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, chat.Name);

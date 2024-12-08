@@ -11,10 +11,9 @@ namespace SimpleChatApp.Data.Services
         {
             _context = context;
         }
-        public async Task<FriendDto?> AddFriendAsync(User user, FriendDto friend)
+        public async Task<FriendDto?> AddFriendAsync(string userId, FriendDto friend)
         {
-            if (user.UserName == friend.UserName)
-                return null;
+
 
             var friendId = await _context.Users
                            .Where(u => u.UserName == friend.UserName)
@@ -24,8 +23,11 @@ namespace SimpleChatApp.Data.Services
             if (friendId == null)
                 return null;
 
+            if (userId == friendId)
+                return null;
+
             var existingFriendship = await _context.Friendships
-                .Where(fs => fs.SubjectId == user.Id && fs.ObjectId == friendId)
+                .Where(fs => fs.SubjectId == userId && fs.ObjectId == friendId)
                 .SingleOrDefaultAsync();
 
             if (existingFriendship != null)
@@ -33,7 +35,7 @@ namespace SimpleChatApp.Data.Services
 
             _context.Friendships.Add(new Friendship
             {
-                SubjectId = user.Id,
+                SubjectId = userId,
                 ObjectId = friendId
             });
 
@@ -62,10 +64,10 @@ namespace SimpleChatApp.Data.Services
             return result;
         }
 
-        public async Task<List<FriendDto>> GetAllFriendsAsync(User user)
+        public async Task<List<FriendDto>> GetAllFriendsAsync(string userId)
         {
             var friends = (await _context.Users
-                          .Where(u => u.UserName == user.UserName)
+                          .Where(u => u.Id == userId)
                           .Include(u => u.FriendsObjects)
                           .Select(u => u.FriendsObjects.Select(fr => new FriendDto { UserName = fr.UserName! }))
                           .SingleOrDefaultAsync())?.ToList();
@@ -81,17 +83,20 @@ namespace SimpleChatApp.Data.Services
 
         public async Task<UserProfileDto?> GetUserProfileAsync(string userId)
         {
+            var userIsAnon = await _context.Users
+                .AnyAsync(u => u.Id == userId && u.IsAnonimous);
+            if (userIsAnon) return null;
+
             var profile = await _context.Profiles.SingleOrDefaultAsync(p => p.UserId == userId);
-            UserProfileDto? result = null;
-            if (profile != null)
+
+            if (profile == null) return null;
+
+            var result = new UserProfileDto
             {
-                result = new UserProfileDto
-                {
-                    Nickname = profile.Nickname,
-                    Bio = profile.Bio,
-                    InventionOptions = profile.InventionOptions
-                };
-            }
+                Nickname = profile.Nickname,
+                Bio = profile.Bio,
+                InventionOptions = profile.InventionOptions
+            };
 
             return result;
         }
@@ -121,11 +126,8 @@ namespace SimpleChatApp.Data.Services
             return await _context.Users.AnyAsync(u => u.UserName == userName);
         }
 
-        public async Task<FriendDto?> RemoveFriendAsync(User user, FriendDto friend)
+        public async Task<FriendDto?> RemoveFriendAsync(string userId, FriendDto friend)
         {
-            if (user.UserName == friend.UserName)
-                return null;
-
             var friendId = await _context.Users
                 .Where(u => u.UserName == friend.UserName)
                 .Select(u => u.Id)
@@ -134,8 +136,11 @@ namespace SimpleChatApp.Data.Services
             if (friendId == null)
                 return null;
 
+            if (userId == friendId)
+                return null;
+
             var friendship = await _context.Friendships
-                .Where(fs => fs.SubjectId == user.Id && fs.ObjectId == friendId)
+                .Where(fs => fs.SubjectId == userId && fs.ObjectId == friendId)
                 .SingleOrDefaultAsync();
 
             if (friendship == null)
@@ -147,16 +152,21 @@ namespace SimpleChatApp.Data.Services
             return friend;
         }
 
-        public async Task<UserProfileDto?> UpdateUserProfileAsync(User user, UserProfileDto profile)
+        public async Task<UserProfileDto?> UpdateUserProfileAsync(string userId, UserProfileDto profile)
         {
+            var userIsAnon = await _context.Users
+                .AnyAsync(u => u.Id == userId && u.IsAnonimous);
+
+            if (userIsAnon) return null;
+
             var nickExists = _context.Profiles
-                .Where(p => p.Nickname == profile.Nickname && p.UserId != user.Id)
+                .Where(p => p.Nickname == profile.Nickname && p.UserId != userId)
                 .Any();
 
             if (nickExists)
                 return null;
 
-            var newProfile = _context.Profiles.Single(up => up.UserId == user.Id);
+            var newProfile = _context.Profiles.Single(up => up.UserId == userId);
             newProfile.Nickname = profile.Nickname;
             newProfile.Bio = profile.Bio;
             newProfile.InventionOptions = profile.InventionOptions;

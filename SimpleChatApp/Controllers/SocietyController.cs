@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SimpleChatApp.Data.Services;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
+using System.Security.Claims;
 
 namespace SimpleChatApp.Controllers
 {
@@ -13,13 +14,10 @@ namespace SimpleChatApp.Controllers
     public class SocietyController : ControllerBase
     {
         IUserDataService _userDataService;
-        UserManager<User> _userManager;
 
-        public SocietyController(IUserDataService userDataService,
-                                 UserManager<User> userManager)
+        public SocietyController(IUserDataService userDataService)
         {
             _userDataService = userDataService;
-            _userManager = userManager;
         }
 
         [HttpGet]
@@ -50,12 +48,9 @@ namespace SimpleChatApp.Controllers
         [Authorize]
         public async Task<Results<Ok<FriendDto>, BadRequest, NotFound>> AddFriend([FromBody] FriendDto friend)
         {
-            if (!ModelState.IsValid)
-                return TypedResults.BadRequest();
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            var user = await _userManager.GetUserAsync(HttpContext.User);
-
-            var addedFriend = await _userDataService.AddFriendAsync(user!, friend);
+            var addedFriend = await _userDataService.AddFriendAsync(userId, friend);
             if (addedFriend == null)
                 return TypedResults.NotFound();
 
@@ -67,12 +62,9 @@ namespace SimpleChatApp.Controllers
         [Authorize]
         public async Task<Results<Ok<FriendDto>, BadRequest, NotFound>> RemoveFriend([FromBody] FriendDto friend)
         {
-            if (!ModelState.IsValid)
-                return TypedResults.BadRequest();
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            var user = await _userManager.GetUserAsync(HttpContext.User);
-
-            var removedFriend = await _userDataService.RemoveFriendAsync(user!, friend);
+            var removedFriend = await _userDataService.RemoveFriendAsync(userId, friend);
             if (removedFriend == null)
                 return TypedResults.NotFound();
 
@@ -84,9 +76,9 @@ namespace SimpleChatApp.Controllers
         [Authorize]
         public async Task<List<FriendDto>> GetAllFriends()
         {
-            var user = await _userManager.GetUserAsync(HttpContext.User);
+            string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            var friendsDtos = await _userDataService.GetAllFriendsAsync(user!);
+            var friendsDtos = await _userDataService.GetAllFriendsAsync(userId);
             return friendsDtos;
         }
     }
