@@ -1,5 +1,6 @@
 ﻿using SimpleChatApp.Models.DTO;
 using SimpleChatApp.Models;
+using SimpleChatApp.ErrorHandling.ResultPattern;
 
 namespace SimpleChatApp.Data.Services
 {

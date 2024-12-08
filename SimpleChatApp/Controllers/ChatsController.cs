@@ -5,9 +5,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimpleChatApp.Data;
 using SimpleChatApp.Data.Services;
+using SimpleChatApp.ErrorHandling.ResultPattern;
 using SimpleChatApp.Hubs.Services;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
+using System.Security.Claims;
 
 namespace SimpleChatApp.Controllers
 {
@@ -110,5 +112,6 @@ namespace SimpleChatApp.Controllers
 
             return TypedResults.Ok(messages);
         }
+        
     }
 }

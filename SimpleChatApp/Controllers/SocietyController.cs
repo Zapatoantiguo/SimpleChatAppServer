@@ -42,7 +42,6 @@ namespace SimpleChatApp.Controllers
         public async Task<Results<Ok<List<UserDto>>, BadRequest>> GetAllUsers()
         {
             List<UserDto> users = await _userDataService.GetAllUsersAsync();
-
             return TypedResults.Ok(users);
         }
 
