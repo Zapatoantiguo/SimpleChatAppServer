@@ -3,6 +3,9 @@
     public static class NotificationErrors
     {
         public static Error InvitationAlreadyExists() => Error.Conflict(
-            "Notifications.NotFound", $"User is invited already");
+            "Notifications.Conflict", $"User is invited already");
+
+        public static Error NotFound() => Error.NotFound(
+            "Notifications.NotFound", $"User is not invited in chat");
     }
 }

@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 
-var connString = builder.Configuration.GetValue<string>("ChatAppConnStr");
+var connString = builder.Configuration.GetValue<string>("ChatAppConnStr");  // env var for pg
 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connString));
 
 builder.Services.AddIdentityApiEndpoints<User>().AddEntityFrameworkStores<AppDbContext>();
@@ -23,6 +23,8 @@ builder.Services.AddScoped<IUserDataService, UserDataService>();
 builder.Services.AddScoped<IChatDataService, ChatDataService>();
 builder.Services.AddScoped<INotificationDataService, NotificationDataService>();
 builder.Services.AddScoped<IMessageDataService, MessageDataService>();
+builder.Services.AddScoped<IInvitationService, InvitationService>();
+
 builder.Services.AddSingleton<IUserHubContextManager, UserHubContextManager>();
 
 builder.Services.AddHostedService<CleanDbBackgroundTask>();

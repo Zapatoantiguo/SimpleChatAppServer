@@ -11,7 +11,6 @@ namespace SimpleChatApp.Hubs.Services
 
         public UserHubContextManager(IHubContext<AppHub> hubContext)
         {
-
             _groupManager = hubContext.Groups;
         }
 
@@ -82,6 +81,15 @@ namespace SimpleChatApp.Hubs.Services
                 _dict.TryGetValue(userId, out list);
             }
             return list;
+        }
+        public List<string>? GetUserConnections(string userId)
+        {
+            List<HubCallerContext>? list = null;
+            lock (_dict)
+            {
+                _dict.TryGetValue(userId, out list);
+            }
+            return list?.Select(context => context.ConnectionId).ToList();
         }
     }
 }

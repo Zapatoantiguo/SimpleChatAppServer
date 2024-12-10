@@ -1,6 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using SimpleChatApp.ErrorHandling.ResultPattern;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
+using System.Collections.Generic;
 
 namespace SimpleChatApp.Data.Services
 {
@@ -12,24 +16,52 @@ namespace SimpleChatApp.Data.Services
         {
             _context = context;
         }
-        public async Task<Message?> AddMessageAsync(Message message)
+        public async Task<Result<Message>> AddMessageAsync(string senderId, string chatName, string content)
         {
-            _context.Messages.Add(message);
+            User? sender = await _context.Users.FindAsync(senderId);
+            if (sender == null)
+                throw new Exception($"User ID {senderId} doesn't exist in DB");
+
+            ChatRoom? chat = await _context.ChatRooms
+                .SingleOrDefaultAsync(c => c.Name == chatName);
+            if (chat == null)
+                return Result<Message>.Failure(ChatErrors.NotFound(chatName));
+
+            var senderInChat = await _context.UserChatRoom
+                .AnyAsync(uc => uc.UserId == senderId && uc.ChatRoomId == chat.ChatRoomId);
+            if (!senderInChat)
+                return Result<Message>.Failure(ChatErrors.UserIsNotInChat());
+
+            var msg = new Message
+            {
+                AuthorAlias = sender.UserName!,
+                Author = sender,
+                Content = content,
+                ChatRoomId = chat.ChatRoomId,
+                SentAt = DateTime.UtcNow
+            };
+
+            _context.Messages.Add(msg);
             await _context.SaveChangesAsync();
 
-            return message;
+            return Result<Message>.Success(msg);
         }
 
-        public async Task<List<MessageDto>?> GetLastMessagesAsync(string userId, string chatRoomName, int pageNumber, int pageSize)
+        public async Task<Result<List<MessageDto>>> GetLastMessagesAsync(string userId, string chatRoomName, int pageNumber, int pageSize)
         {
+            if (pageNumber < 0 || pageSize < 1)
+                return Result<List<MessageDto>>.Failure(Error
+                    .Validation("MessageServiceValidation", "Incorrect pagination parameters"));
+
             var chat = await _context.ChatRooms
                 .Include(ch => ch.Users)
                 .SingleOrDefaultAsync(ch => ch.Name == chatRoomName);
 
-            if (chat == null) return null;
+            if (chat == null)
+                return Result<List<MessageDto>>.Failure(ChatErrors.NotFound(chatRoomName));
 
             if (!chat.Users.Any(u => u.Id == userId))
-                return null;
+                return Result<List<MessageDto>>.Failure(ChatErrors.UserIsNotInChat());
 
             int startIndex = pageNumber * pageSize;
             int endIndex = startIndex + (int)pageSize;
@@ -47,7 +79,7 @@ namespace SimpleChatApp.Data.Services
                 })
                 .ToListAsync();
 
-            return messages;
+            return Result<List<MessageDto>>.Success(messages);
         }
     }
 }

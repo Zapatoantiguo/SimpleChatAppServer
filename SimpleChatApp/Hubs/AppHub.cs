@@ -14,26 +14,26 @@ namespace SimpleChatApp.Hubs
     [Authorize]
     public class AppHub : Hub<IHubClient>
     {
-        IUserDataService _userDataService;
         IChatDataService _chatDataService;
         INotificationDataService _notificationDataService;
         IMessageDataService _messageDataService;
         UserManager<User> _userManager;
         IUserHubContextManager _userHubContextManager;
+        IInvitationService _invitationService;
 
-        public AppHub(IUserDataService userDataService,
-            IChatDataService chatDataService,
+        public AppHub(IChatDataService chatDataService,
             INotificationDataService notificationDataService,
             IMessageDataService messageDataService,
             UserManager<User> userManager,
-            IUserHubContextManager userHubContextManager)
+            IUserHubContextManager userHubContextManager,
+            IInvitationService invitationService)
         {
-            _userDataService = userDataService;
             _chatDataService = chatDataService;
             _notificationDataService = notificationDataService;
             _messageDataService = messageDataService;
             _userManager = userManager;
             _userHubContextManager = userHubContextManager;
+            _invitationService = invitationService;
         }
 
         public override async Task OnConnectedAsync()
@@ -66,99 +66,56 @@ namespace SimpleChatApp.Hubs
 
         public async Task<int> InviteToChatRoom(string targetUserName, string chatRoomName)
         {
-            // check if such user and chat exist and target not in chat ...
-            User? targetUser = await _userDataService.GetUserByNameAsync(targetUserName);
-            if (targetUser == null) 
-                return -1; // TODO: here and everywhere in hub: find a better solution for return statuses to clients
+            var invResult = await _invitationService.HandleInviteRequestAsync(Context.UserIdentifier!, targetUserName, chatRoomName);
+            if (invResult.IsFailure)
+                return -1;  // TODO: make a decision on hub methods return types (are ProblemDetails acceptable?)
 
-            int? chatId = await _chatDataService.GetChatIdByName(chatRoomName);
-            if (chatId == null)
-                return -2;
-
-            bool targetInChat = await _chatDataService.IsUserInChat(targetUser.Id, chatRoomName);
-            if (targetInChat)
-                return -3;
-
-            // Register invitation: save notification with body in db ...
-            User caller = (await _userManager.GetUserAsync(Context.User!))!;
-
-            UserProfileDto? targetProfile = await _userDataService.GetUserProfileAsync(targetUser.Id);
-            if (targetProfile?.InventionOptions == ChatInventionOptions.FriendsOnly)
+            var invitation = invResult.Value;
+            // Send invitation to a target if one is connected
+            if (Clients.User(invitation.TargetId) is not null)
             {
-                bool callerIsFriend = await _userDataService.CheckIsFriend(targetUser.Id, caller.Id);
-                if (!callerIsFriend)
-                    return -4;
-            }
-            else if (targetProfile?.InventionOptions == ChatInventionOptions.ResidentsOnly)
-            {
-                if (caller.IsAnonimous)
-                    return -5;
-            }
-
-            InviteNotification notification = new()
-            {
-                ChatRoomName = chatRoomName,
-                SourceUserName = caller.UserName!,
-                TargetUser = targetUser,
-                TargetId = targetUser.Id
-            };
-            
-            var addedNotification = await _notificationDataService.AddInviteNotificationAsync(notification);
-            if (addedNotification == null)
-                return -6;  // user is invited already
-
-            // Call a method to send invitation to a target if one is connected
-            if (Clients.User(targetUser.Id) is not null)
-            {
-                await Clients.User(targetUser.Id).OnInvited(caller.UserName!, chatRoomName);
+                await Clients.User(invitation.TargetId).OnInvited(invitation.SourceUserName, chatRoomName);
             }
 
             return 0;
         }
         public async Task<int> RespondToInvite(string chatRoomName, bool accept)
         {
-            List<InviteNotification> invites = await _notificationDataService.GetInviteNotifications(Context.UserIdentifier!);
+            var invHandleResult = await _notificationDataService
+                .HandleInviteRespondAsync(Context.UserIdentifier!, chatRoomName, accept);
 
-            var invitation = invites.SingleOrDefault(n => n.ChatRoomName == chatRoomName);
-            if (invitation == null)
+            if (invHandleResult.IsFailure)
                 return -1;
 
             if (accept)
             {
-                var addedUser = await _chatDataService.AddUserToChatAsync(invitation.TargetId, chatRoomName);
-
-                // TODO: add processing of other current connections of this user 
                 await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomName);
-                await Clients.OthersInGroup(chatRoomName).OnUserJoinedChat(addedUser.UserName, chatRoomName);
+
+                // add current and other connections of this user to hub group
+                List<string>? userConnections = _userHubContextManager.GetUserConnections(Context.UserIdentifier!);
+                foreach (var connectionId in userConnections!)
+                    await Groups.AddToGroupAsync(connectionId, chatRoomName);
+
+                string userName = Context.User!.FindFirstValue(ClaimTypes.Name)!;
+                await Clients.OthersInGroup(chatRoomName).OnUserJoinedChat(userName, chatRoomName);
             }
-            await _notificationDataService.RemoveInviteNotificationAsync(invitation);
+            
             return 0;
         }
         public async Task<int> SendMessage(string chatRoomName, string message)
         {
-            var userIsInChat = await _chatDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
-            if (!userIsInChat)
-                return -1;  // caller is not in chat
+            string senderId = Context.UserIdentifier!;        
 
-            User caller = await _userManager.GetUserAsync(Context.User);
+            var addMsgResult = await _messageDataService.AddMessageAsync(senderId, chatRoomName, message);
 
-            int chatId = (await _chatDataService.GetChatIdByName(chatRoomName)).Value;
-            var msg = new Message
-            {
-                AuthorAlias = caller.UserName,
-                Author = caller,
-                Content = message,
-                ChatRoomId = chatId,
-                SentAt = DateTime.UtcNow
-            };
+            if (addMsgResult.IsFailure) 
+                return -1;
 
-            var addedMsg = await _messageDataService.AddMessageAsync(msg);
-
-
+            var msg = addMsgResult.Value;
             MessageDto msgDto = new()
             {
-                AuthorAlias = caller.UserName,
-                Content = message,
+                AuthorAlias = msg.AuthorAlias,
+                Content = msg.Content,
                 SentAt = msg.SentAt
             };
             await Clients.Group(chatRoomName).OnMessageReceived(msgDto);
@@ -167,18 +124,18 @@ namespace SimpleChatApp.Hubs
 
         public async Task<int> LeaveChat(string chatRoomName)
         {
-            var userIsInChat = await _chatDataService.IsUserInChat(Context.UserIdentifier, chatRoomName);
+            var userIsInChat = await _chatDataService.IsUserInChat(Context.UserIdentifier!, chatRoomName);
             if (!userIsInChat)
                 return -1;  // caller is not in chat
 
-            User caller = await _userManager.GetUserAsync(Context.User);
+            User caller = (await _userManager.GetUserAsync(Context.User!))!;
 
-            var removedUser = await _chatDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
-            if (removedUser == null)
+            var removeResult = await _chatDataService.RemoveUserFromChatAsync(caller.Id, chatRoomName);
+            if (removeResult.IsFailure)
                 return -2;
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, chatRoomName);
-            await Clients.Group(chatRoomName).OnUserLeavedChat(caller.UserName, chatRoomName);
+            await Clients.Group(chatRoomName).OnUserLeavedChat(caller.UserName!, chatRoomName);
 
             return 0;
         }

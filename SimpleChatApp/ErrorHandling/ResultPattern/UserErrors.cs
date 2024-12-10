@@ -16,6 +16,7 @@
             "Users.Conflict", $"A specified user has profile already");
         public static Error ProfileNotFound() => Error.NotFound(
             "Users.NotFound", $"User profile for requested user was not found");
-
+        public static Error NickExistsAlready() => Error.Conflict(
+            "UserProfile.Conflict", $"A specified nickname already exists. Nickname must be unique");
     }
 }
