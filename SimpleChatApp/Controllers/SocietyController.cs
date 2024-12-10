@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SimpleChatApp.Data.Services;
+using SimpleChatApp.ErrorHandling.ResultPattern;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
 using System.Security.Claims;
@@ -25,10 +26,6 @@ namespace SimpleChatApp.Controllers
         [Authorize]
         public async Task<Results<Ok<List<UserDto>>, BadRequest>> FindUsers([FromBody] UserSearchDto searchDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return TypedResults.BadRequest();
-            }
             List<UserDto> users = await _userDataService.GetUsersViaFilterAsync(searchDto);
 
             return TypedResults.Ok(users);
@@ -46,29 +43,29 @@ namespace SimpleChatApp.Controllers
         [HttpPost]
         [Route("AddFriend")]
         [Authorize]
-        public async Task<Results<Ok<FriendDto>, BadRequest, NotFound>> AddFriend([FromBody] FriendDto friend)
+        public async Task<IResult> AddFriend([FromBody] FriendDto friend)
         {
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            var addedFriend = await _userDataService.AddFriendAsync(userId, friend);
-            if (addedFriend == null)
-                return TypedResults.NotFound();
+            var addResult = await _userDataService.AddFriendAsync(userId, friend);
+            if (addResult.IsFailure)
+                return addResult.ToProblemDetails();
 
-            return TypedResults.Ok(addedFriend);
+            return TypedResults.Ok(addResult.Value);
         }
 
         [HttpPost]
         [Route("RemoveFriend")]
         [Authorize]
-        public async Task<Results<Ok<FriendDto>, BadRequest, NotFound>> RemoveFriend([FromBody] FriendDto friend)
+        public async Task<IResult> RemoveFriend([FromBody] FriendDto friend)
         {
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-            var removedFriend = await _userDataService.RemoveFriendAsync(userId, friend);
-            if (removedFriend == null)
-                return TypedResults.NotFound();
+            var removeResult = await _userDataService.RemoveFriendAsync(userId, friend);
+            if (removeResult.IsFailure)
+                return removeResult.ToProblemDetails();
 
-            return TypedResults.Ok(removedFriend);
+            return TypedResults.Ok(removeResult.Value);
         }
 
         [HttpGet]

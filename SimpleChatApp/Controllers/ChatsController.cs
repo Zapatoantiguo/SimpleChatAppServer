@@ -32,23 +32,24 @@ namespace SimpleChatApp.Controllers
         [HttpPost]
         [Route("CreateChat")]
         [Authorize]
-        public async Task<Results<Ok<ChatRoomDto>, BadRequest>> CreateChat(ChatRoomDto chatDto)
+        public async Task<IResult> CreateChat(ChatRoomDto chatDto)
         {
             // TODO: add chat room name validation
 
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var createdChatDto = await _chatDataService.CreateChatAsync(userId, chatDto);
-            if (createdChatDto == null)
-                return TypedResults.BadRequest();
+            var creationResult = await _chatDataService.CreateChatAsync(userId, chatDto);
+
+            if (creationResult.IsFailure)
+                return creationResult.ToProblemDetails();
 
             var userHubConnections = _userHubContextManager.GetUserHubContexts(userId);
             if (userHubConnections?.Count > 0)
             {
-                List<string> groupNames = new() { createdChatDto.Name };
+                List<string> groupNames = new() { creationResult.Value.Name };
                 _userHubContextManager.AddToGroups(userId, groupNames);
             }
                 
-            return TypedResults.Ok(createdChatDto);
+            return TypedResults.Ok(creationResult.Value);
         }
         [HttpGet]
         [Route("GetUserChats")]
@@ -63,20 +64,20 @@ namespace SimpleChatApp.Controllers
         [HttpGet]
         [Route("GetChatMembers")]
         [Authorize]
-        public async Task<Results<Ok<List<UserDto>>, NotFound>> GetChatMembers(string chatRoomName)
+        public async Task<IResult> GetChatMembers(string chatRoomName)
         {
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var result = await _chatDataService.GetChatMembersAsync(userId, chatRoomName);
 
-            if (result == null)
-                return TypedResults.NotFound();
+            if (result.IsFailure)
+                return result.ToProblemDetails();
 
-            return TypedResults.Ok(result);
+            return TypedResults.Ok(result.Value);
         }
         [HttpGet]
         [Route("GetLastMessages")]
         [Authorize]
-        public async Task<Results<Ok<List<MessageDto>>, NotFound, BadRequest>> GetLastMessages
+        public async Task<IResult> GetLastMessages
             (string chatRoomName, int pageNumber, int pageSize)
         {
             // TODO: add pageSize limit
@@ -84,12 +85,12 @@ namespace SimpleChatApp.Controllers
                 return TypedResults.BadRequest();
 
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var messages = await _messageDataService.GetLastMessagesAsync(userId, chatRoomName, pageNumber, pageSize);
+            var getMsgResult = await _messageDataService.GetLastMessagesAsync(userId, chatRoomName, pageNumber, pageSize);
 
-            if (messages == null)
-                return TypedResults.NotFound();
+            if (getMsgResult.IsFailure)
+                return getMsgResult.ToProblemDetails();
 
-            return TypedResults.Ok(messages);
+            return TypedResults.Ok(getMsgResult.Value);
         }
         
     }

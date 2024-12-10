@@ -53,7 +53,7 @@ namespace SimpleChatApp.Controllers
                 return CreateValidationProblem(result);
             }
 
-            await _dbUserDataService.CreateUserProfileAsync(user);
+            await _dbUserDataService.CreateUserProfileAsync(user.Id);
 
             return TypedResults.Ok();
             // TODO: make register - login in 1 action?

@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using SimpleChatApp.ErrorHandling.ResultPattern;
 using SimpleChatApp.Models;
 using SimpleChatApp.Models.DTO;
 
@@ -11,9 +13,11 @@ namespace SimpleChatApp.Data.Services
         {
             _context = context;
         }
-        public async Task<FriendDto?> AddFriendAsync(string userId, FriendDto friend)
+        public async Task<Result<FriendDto>> AddFriendAsync(string userId, FriendDto friend)
         {
-
+            User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception($"User ID {userId} doesn't exist in DB");
 
             var friendId = await _context.Users
                            .Where(u => u.UserName == friend.UserName)
@@ -21,17 +25,17 @@ namespace SimpleChatApp.Data.Services
                            .SingleOrDefaultAsync();
 
             if (friendId == null)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.NotFound(friend.UserName));
 
             if (userId == friendId)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.SelfFriendship());
 
             var existingFriendship = await _context.Friendships
                 .Where(fs => fs.SubjectId == userId && fs.ObjectId == friendId)
                 .SingleOrDefaultAsync();
 
             if (existingFriendship != null)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.IsFriendAlready());
 
             _context.Friendships.Add(new Friendship
             {
@@ -40,11 +44,15 @@ namespace SimpleChatApp.Data.Services
             });
 
             await _context.SaveChangesAsync();
-            return friend;
+            return Result<FriendDto>.Success(friend);
         }
 
-        public async Task<UserProfileDto> CreateUserProfileAsync(User user)
+        public async Task<Result<UserProfileDto>> CreateUserProfileAsync(string userId)
         {
+            User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception($"User ID {userId} doesn't exist in DB");
+
             var profile = new UserProfile
             {
                 UserId = user.Id,
@@ -55,13 +63,14 @@ namespace SimpleChatApp.Data.Services
 
             _context.Profiles.Add(profile);
             await _context.SaveChangesAsync();
+
             var result = new UserProfileDto
             {
                 Nickname = profile.Nickname,
                 Bio = profile.Bio,
                 InventionOptions = profile.InventionOptions
             };
-            return result;
+            return Result<UserProfileDto>.Success(result);
         }
 
         public async Task<List<FriendDto>> GetAllFriendsAsync(string userId)
@@ -81,24 +90,28 @@ namespace SimpleChatApp.Data.Services
             return result;
         }
 
-        public async Task<UserProfileDto?> GetUserProfileAsync(string userId)
+        public async Task<Result<UserProfileDto>> GetUserProfileAsync(string userId)
         {
-            var userIsAnon = await _context.Users
-                .AnyAsync(u => u.Id == userId && u.IsAnonimous);
-            if (userIsAnon) return null;
+            var user = await _context.Users
+                .Include(u => u.Profile)
+                .SingleOrDefaultAsync(u => u.Id == userId);
 
-            var profile = await _context.Profiles.SingleOrDefaultAsync(p => p.UserId == userId);
+            if (user == null)
+                throw new Exception($"User ID {userId} doesn't exist in DB");
 
-            if (profile == null) return null;
+            if (user.IsAnonimous)
+                return Result<UserProfileDto>.Failure(Error
+                    .Validation("Users.NotAllowed",
+                    "Operation is not allowed for an anonimous users"));    // TODO: move anon sign check to authorization component
 
             var result = new UserProfileDto
             {
-                Nickname = profile.Nickname,
-                Bio = profile.Bio,
-                InventionOptions = profile.InventionOptions
+                Nickname = user.Profile!.Nickname,
+                Bio = user.Profile.Bio,
+                InventionOptions = user.Profile.InventionOptions
             };
 
-            return result;
+            return Result<UserProfileDto>.Success(result);
         }
 
         public async Task<List<UserDto>> GetUsersViaFilterAsync(UserSearchDto filter)
@@ -126,53 +139,60 @@ namespace SimpleChatApp.Data.Services
             return await _context.Users.AnyAsync(u => u.UserName == userName);
         }
 
-        public async Task<FriendDto?> RemoveFriendAsync(string userId, FriendDto friend)
+        public async Task<Result<FriendDto>> RemoveFriendAsync(string userId, FriendDto friend)
         {
+            User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                throw new Exception($"User ID {userId} doesn't exist in DB");
+
             var friendId = await _context.Users
                 .Where(u => u.UserName == friend.UserName)
                 .Select(u => u.Id)
                 .SingleOrDefaultAsync();
 
             if (friendId == null)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.NotFound(friend.UserName));
 
             if (userId == friendId)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.SelfFriendship());
 
             var friendship = await _context.Friendships
                 .Where(fs => fs.SubjectId == userId && fs.ObjectId == friendId)
                 .SingleOrDefaultAsync();
 
             if (friendship == null)
-                return null;
+                return Result<FriendDto>.Failure(UserErrors.IsNotFriend());
 
             _context.Friendships.Remove(friendship);
 
             await _context.SaveChangesAsync();
-            return friend;
+            return Result<FriendDto>.Success(friend);
         }
 
-        public async Task<UserProfileDto?> UpdateUserProfileAsync(string userId, UserProfileDto profile)
+        public async Task<Result<UserProfileDto>> UpdateUserProfileAsync(string userId, UserProfileDto profile)
         {
             var userIsAnon = await _context.Users
                 .AnyAsync(u => u.Id == userId && u.IsAnonimous);
 
-            if (userIsAnon) return null;
+            if (userIsAnon) 
+                return Result<UserProfileDto>.Failure(Error
+                    .Validation("Users.NotAllowed",
+                    "Operation is not allowed for an anonimous users"));    // TODO: move anon sign check to authorization component
 
-            var nickExists = _context.Profiles
+            var nickExists = await _context.Profiles
                 .Where(p => p.Nickname == profile.Nickname && p.UserId != userId)
-                .Any();
+                .AnyAsync();
 
             if (nickExists)
-                return null;
+                return Result<UserProfileDto>.Failure(UserErrors.NickExistsAlready());
 
-            var newProfile = _context.Profiles.Single(up => up.UserId == userId);
+            var newProfile = await _context.Profiles.SingleAsync(up => up.UserId == userId);
             newProfile.Nickname = profile.Nickname;
             newProfile.Bio = profile.Bio;
             newProfile.InventionOptions = profile.InventionOptions;
             await _context.SaveChangesAsync();
 
-            return profile;
+            return Result<UserProfileDto>.Success(profile);
         }
 
         public async Task<bool> CheckIsFriend(string friendSubjId, string friendObjId)

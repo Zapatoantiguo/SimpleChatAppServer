@@ -12,18 +12,18 @@ namespace SimpleChatApp.Data.Services
         {
             _context = context;
         }
-        public async Task<User?> AddUserToChatAsync(string userId, string chatRoomName)
+        public async Task<Result<User>> AddUserToChatAsync(string userId, string chatRoomName)
         {
             User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
             if (user == null)
-                return null;
+                throw new Exception($"User ID {userId} doesn't exist in DB");
 
             ChatRoom? chat = await _context.ChatRooms.SingleOrDefaultAsync(c => c.Name == chatRoomName);
             if (chat == null)
-                return null;
+                return Result<User>.Failure(ChatErrors.NotFound(chatRoomName));
 
             if (chat.Users.Any(u => u.Id == userId))
-                return null;
+                return Result<User>.Failure(ChatErrors.UserInChatAlready());
 
             UserChatRoom joinEntry = new()
             {
@@ -32,13 +32,12 @@ namespace SimpleChatApp.Data.Services
                 JoinedAt = DateTime.UtcNow
             };
             chat.UserChatRoom.Add(joinEntry);
-            //chat.Users.Add(user);
 
             await _context.SaveChangesAsync();
-            return user;
+            return Result<User>.Success(user);
         }
 
-        public async Task<ChatRoomDto?> CreateChatAsync(string creatorId, ChatRoomDto chatDto)
+        public async Task<Result<ChatRoomDto>> CreateChatAsync(string creatorId, ChatRoomDto chatDto)
         {
             ArgumentNullException.ThrowIfNull(creatorId);
             ArgumentNullException.ThrowIfNull(chatDto);
@@ -46,11 +45,12 @@ namespace SimpleChatApp.Data.Services
             var nameIsNotUnique = await _context.ChatRooms
                 .AnyAsync(c => c.Name == chatDto.Name);
 
-            if (nameIsNotUnique) return null;
-
+            if (nameIsNotUnique) 
+                return Result<ChatRoomDto>.Failure(ChatErrors.NameIsNotUnique());
 
             var creator = await _context.Users.SingleOrDefaultAsync(u => u.Id == creatorId);
-            if (creator == null) return null;
+            if (creator == null)
+                throw new Exception($"User ID {creatorId} doesn't exist in DB");
 
             var chat = new ChatRoom
             {
@@ -62,36 +62,40 @@ namespace SimpleChatApp.Data.Services
             _context.ChatRooms.Add(chat);
             await _context.SaveChangesAsync();
 
-            return new ChatRoomDto
-            {
-                Name = chat.Name,
-                Description = chat.Description
-            };
+            return Result<ChatRoomDto>.Success(
+                new ChatRoomDto
+                {
+                    Name = chat.Name,
+                    Description = chat.Description
+                });
         }
 
-        public async Task<int?> GetChatIdByName(string chatRoomName)
+        public async Task<Result<int>> GetChatIdByName(string chatRoomName)
         {
             var chat = await _context.ChatRooms.SingleOrDefaultAsync(chat => chat.Name == chatRoomName);
+            if (chat == null)
+                return Result<int>.Failure(ChatErrors.NotFound(chatRoomName));
 
-            return chat?.ChatRoomId;
+            return Result<int>.Success(chat.ChatRoomId);
         }
 
-        public async Task<List<UserDto>?> GetChatMembersAsync(string requesterId, string chatRoomName)
+        public async Task<Result<List<UserDto>>> GetChatMembersAsync(string requesterId, string chatRoomName)
         {
             var chat = await _context.ChatRooms
                 .Include(ch => ch.Users)
                 .SingleOrDefaultAsync(ch => ch.Name == chatRoomName);
 
-            if (chat == null) return null;
+            if (chat == null) 
+                return Result<List<UserDto>>.Failure(ChatErrors.NotFound(chatRoomName));
 
             if (!chat.Users.Any(u => u.Id == requesterId))
-                return null;
+                return Result<List<UserDto>>.Failure(ChatErrors.UserIsNotInChat());
 
             var result = chat.Users
                 .Select(u => new UserDto { Name = u.UserName!, IsAnonimous = u.IsAnonimous })
                 .ToList();
 
-            return result;
+            return Result<List<UserDto>>.Success(result);
         }
 
         public async Task<List<ChatRoomDto>> GetUserChatsAsync(string userId)
@@ -121,19 +125,19 @@ namespace SimpleChatApp.Data.Services
             return false;
         }
 
-        public async Task<User?> RemoveUserFromChatAsync(string userId, string chatRoomName)
+        public async Task<Result<User>> RemoveUserFromChatAsync(string userId, string chatRoomName)
         {
             User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
             if (user == null)
-                return null;
+                throw new Exception($"User ID {userId} doesn't exist in DB");
 
             ChatRoom? chat = await _context.ChatRooms.SingleOrDefaultAsync(c => c.Name == chatRoomName);
             if (chat == null)
-                return null;
+                return Result<User>.Failure(ChatErrors.NotFound(chatRoomName));
 
             chat.Users.Remove(user);    // TODO: add Equals override on User?
             await _context.SaveChangesAsync();
-            return user;
+            return Result<User>.Success(user);
         }
     }
 }
