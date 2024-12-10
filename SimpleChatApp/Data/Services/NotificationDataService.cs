@@ -36,35 +36,6 @@ namespace SimpleChatApp.Data.Services
                 .ToListAsync();
 
             return notifications ?? new List<InviteNotification>();
-        }
-
-        public async Task<Result<InviteNotification>> HandleInviteRespondAsync(string userId, string chatRoomName, bool accept)
-        {
-            User? user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                throw new Exception($"User ID {userId} doesn't exist in DB");
-
-            ChatRoom? chat = await _context.ChatRooms.SingleOrDefaultAsync(c => c.Name == chatRoomName);
-            if (chat == null)
-                return Result<InviteNotification>.Failure(ChatErrors.NotFound(chatRoomName));
-
-            var invitation = await _context.InviteNotifications
-                .SingleOrDefaultAsync(n => n.ChatRoomName == chatRoomName && n.TargetId == userId);
-            if (invitation == null)
-                return Result<InviteNotification>.Failure(NotificationErrors.NotFound());
-
-            if (accept)
-            {
-                // TODO: remove interservice dependency?
-                var addResult = await _chatDataService.AddUserToChatAsync(invitation.TargetId, chatRoomName);
-                if (addResult.IsFailure)
-                    return Result<InviteNotification>.Failure(addResult.Error);
-            }
-
-            _context.InviteNotifications.Remove(invitation);
-            await _context.SaveChangesAsync();
-
-            return Result<InviteNotification>.Success(invitation);
-        }
+        }     
     }
 }

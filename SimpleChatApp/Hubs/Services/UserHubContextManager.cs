@@ -7,11 +7,11 @@ namespace SimpleChatApp.Hubs.Services
     {
         object _lock = new object();
         private readonly Dictionary<string, List<HubCallerContext>> _dict = new Dictionary<string, List<HubCallerContext>>();
-        private readonly IGroupManager _groupManager;
+        private readonly IHubContext<AppHub> _hubContext;
 
         public UserHubContextManager(IHubContext<AppHub> hubContext)
         {
-            _groupManager = hubContext.Groups;
+            _hubContext = hubContext;
         }
 
         public void AddUserHubContext(string userId, HubCallerContext context)
@@ -47,42 +47,20 @@ namespace SimpleChatApp.Hubs.Services
             }
         }
 
-        void IUserHubContextManager.RemoveFromGroups(string userId, List<string> groupNames)
-        {
-            lock (_dict)
-            {
-                if (!_dict.TryGetValue(userId, out var list))
-                    return;
+        //void IUserHubContextManager.AddToGroups(string userId, List<string> groupNames)
+        //{
+        //    lock (_dict)
+        //    {
+        //        if (!_dict.TryGetValue(userId, out var list))
+        //            return;
 
-                foreach (var ctx in list)
-                    foreach (var group in groupNames)
-                        _groupManager.RemoveFromGroupAsync(ctx.ConnectionId, group);
-            }
-        }
+        //        foreach (var ctx in list)
+        //            foreach (var group in groupNames)
+        //                _hubContext.Groups.AddToGroupAsync(ctx.ConnectionId, group);
+        //    }
+        //}
 
-        void IUserHubContextManager.AddToGroups(string userId, List<string> groupNames)
-        {
-            lock (_dict)
-            {
-                if (!_dict.TryGetValue(userId, out var list))
-                    return;
-
-                foreach (var ctx in list)
-                    foreach (var group in groupNames)
-                        _groupManager.AddToGroupAsync(ctx.ConnectionId, group);
-            }
-        }
-
-        public List<HubCallerContext>? GetUserHubContexts(string userId)
-        {
-            List<HubCallerContext>? list = null;
-            lock ( _dict)
-            {
-                _dict.TryGetValue(userId, out list);
-            }
-            return list;
-        }
-        public List<string>? GetUserConnections(string userId)
+        public List<string>? GetUserConnectionIds(string userId)
         {
             List<HubCallerContext>? list = null;
             lock (_dict)

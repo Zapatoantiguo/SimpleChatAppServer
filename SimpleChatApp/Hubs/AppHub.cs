@@ -81,7 +81,7 @@ namespace SimpleChatApp.Hubs
         }
         public async Task<int> RespondToInvite(string chatRoomName, bool accept)
         {
-            var invHandleResult = await _notificationDataService
+            var invHandleResult = await _invitationService
                 .HandleInviteRespondAsync(Context.UserIdentifier!, chatRoomName, accept);
 
             if (invHandleResult.IsFailure)
@@ -92,7 +92,7 @@ namespace SimpleChatApp.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, chatRoomName);
 
                 // add current and other connections of this user to hub group
-                List<string>? userConnections = _userHubContextManager.GetUserConnections(Context.UserIdentifier!);
+                List<string>? userConnections = _userHubContextManager.GetUserConnectionIds(Context.UserIdentifier!);
                 foreach (var connectionId in userConnections!)
                     await Groups.AddToGroupAsync(connectionId, chatRoomName);
 

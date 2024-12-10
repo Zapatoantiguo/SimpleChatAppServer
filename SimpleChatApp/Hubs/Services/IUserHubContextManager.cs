@@ -11,10 +11,8 @@ namespace SimpleChatApp.Hubs.Services
         public void AddUserHubContext(string userId, HubCallerContext context);
         public void RemoveUserHubContexts(string userId);
         public void Disconnect(string userId);
-        public void RemoveFromGroups(string userId, List<string> groupNames);
-        public void AddToGroups(string userId, List<string> groupNames);
-        public List<HubCallerContext>? GetUserHubContexts(string userId);
-        public List<string>? GetUserConnections(string userId);
+        //public void AddToGroups(string userId, List<string> groupNames);
+        public List<string>? GetUserConnectionIds(string userId);
 
     }
 }
