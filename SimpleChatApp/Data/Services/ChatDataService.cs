@@ -131,11 +131,14 @@ namespace SimpleChatApp.Data.Services
             if (user == null)
                 throw new Exception($"User ID {userId} doesn't exist in DB");
 
-            ChatRoom? chat = await _context.ChatRooms.SingleOrDefaultAsync(c => c.Name == chatRoomName);
+            ChatRoom? chat = await _context.ChatRooms
+                .Include(cr => cr.UserChatRoom)
+                .SingleOrDefaultAsync(c => c.Name == chatRoomName);
+
             if (chat == null)
                 return Result<User>.Failure(ChatErrors.NotFound(chatRoomName));
 
-            chat.Users.Remove(user);    // TODO: add Equals override on User?
+            chat.UserChatRoom.RemoveAll(ucr => ucr.UserId == userId);    
             await _context.SaveChangesAsync();
             return Result<User>.Success(user);
         }

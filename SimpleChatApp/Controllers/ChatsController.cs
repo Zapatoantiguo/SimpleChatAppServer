@@ -51,8 +51,11 @@ namespace SimpleChatApp.Controllers
                 return creationResult.ToProblemDetails();
 
             var userHubConnections = _userHubContextManager.GetUserConnectionIds(userId);
-            foreach (var connectionId in userHubConnections!)
-                await _hubContext.Groups.AddToGroupAsync(connectionId, creationResult.Value.Name);
+            if (userHubConnections != null)
+            {
+                foreach (var connectionId in userHubConnections)
+                    await _hubContext.Groups.AddToGroupAsync(connectionId, creationResult.Value.Name);
+            }
                 
             return TypedResults.Ok(creationResult.Value);
         }
@@ -117,7 +120,7 @@ namespace SimpleChatApp.Controllers
                 SentAt = addedMsg.SentAt
             };
             await _hubContext.Clients.Group(chatRoomName).OnMessageReceived(msgDto);
-            return TypedResults.Ok(addedMsg);
+            return TypedResults.Ok(msgDto);
         }
         [HttpPost]
         [Route("LeaveChat")]
