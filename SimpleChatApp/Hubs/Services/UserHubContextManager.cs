@@ -47,19 +47,6 @@ namespace SimpleChatApp.Hubs.Services
             }
         }
 
-        //void IUserHubContextManager.AddToGroups(string userId, List<string> groupNames)
-        //{
-        //    lock (_dict)
-        //    {
-        //        if (!_dict.TryGetValue(userId, out var list))
-        //            return;
-
-        //        foreach (var ctx in list)
-        //            foreach (var group in groupNames)
-        //                _hubContext.Groups.AddToGroupAsync(ctx.ConnectionId, group);
-        //    }
-        //}
-
         public List<string>? GetUserConnectionIds(string userId)
         {
             List<HubCallerContext>? list = null;
