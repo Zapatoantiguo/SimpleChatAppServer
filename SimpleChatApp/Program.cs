@@ -25,7 +25,7 @@ builder.Services.AddScoped<INotificationDataService, NotificationDataService>();
 builder.Services.AddScoped<IMessageDataService, MessageDataService>();
 builder.Services.AddScoped<IInvitationService, InvitationService>();
 
-builder.Services.AddSingleton<IUserHubContextManager, UserHubContextManager>();
+builder.Services.AddSingleton<IUserHubContextManager, EntryLockUserHubContextManager>();
 
 builder.Services.AddHostedService<CleanDbBackgroundTask>();
 var app = builder.Build();

@@ -1,32 +1,42 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace SimpleChatApp.Hubs.Services
 {
-    public class UserHubContextManager : IUserHubContextManager
+    public class FullLockUserHubContextManager : IUserHubContextManager
     {
         object _lock = new object();
-        private readonly Dictionary<string, List<HubCallerContext>> _dict = new Dictionary<string, List<HubCallerContext>>();
+        private readonly Dictionary<string, List<HubCallerContextWrapper>> _dict = new Dictionary<string, List<HubCallerContextWrapper>>();
         private readonly IHubContext<AppHub> _hubContext;
 
-        public UserHubContextManager(IHubContext<AppHub> hubContext)
+        public FullLockUserHubContextManager(IHubContext<AppHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        public void AddUserHubContext(string userId, HubCallerContext context)
+        public void AddUserHubContext(string userId, HubCallerContextWrapper context)
         {
             lock (_dict)
             {
-                if (_dict.TryAdd(userId, new List<HubCallerContext>() { context }))
+                if (_dict.TryAdd(userId, new List<HubCallerContextWrapper>() { context }))
                     return;
 
                 var list = _dict[userId];
                 list.Add(context);
             }
         }
+        public void RemoveUserHubContext(string userId, HubCallerContextWrapper context)
+        {
+            lock (_dict)
+            {
+                if (!_dict.TryGetValue(userId, out var list))
+                    return;
+                list.Remove(context);
+            }
+        }
 
-        void IUserHubContextManager.RemoveUserHubContexts(string userId)
+        public void RemoveAllUserHubContexts(string userId)
         {
             lock (_dict)
             {
@@ -35,7 +45,7 @@ namespace SimpleChatApp.Hubs.Services
             }
         }
 
-        void IUserHubContextManager.Disconnect(string userId)
+        public void AbortUserConnections(string userId)
         {
             lock (_dict)
             {
@@ -43,13 +53,13 @@ namespace SimpleChatApp.Hubs.Services
                     return;
 
                 foreach (var ctx in list)
-                    ctx.Abort();
+                    ctx.AbortConnection();
             }
         }
 
         public List<string>? GetUserConnectionIds(string userId)
         {
-            List<HubCallerContext>? list = null;
+            List<HubCallerContextWrapper>? list = null;
             lock (_dict)
             {
                 _dict.TryGetValue(userId, out list);

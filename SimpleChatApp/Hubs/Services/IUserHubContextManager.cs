@@ -8,10 +8,37 @@ namespace SimpleChatApp.Hubs.Services
     /// </summary>
     public interface IUserHubContextManager
     {
-        public void AddUserHubContext(string userId, HubCallerContext context);
-        public void RemoveUserHubContexts(string userId);
-        public void Disconnect(string userId);
+        public void AddUserHubContext(string userId, HubCallerContextWrapper context);
+        public void RemoveUserHubContext(string userId, HubCallerContextWrapper context);
+        public void RemoveAllUserHubContexts(string userId);
+        public void AbortUserConnections(string userId);
         public List<string>? GetUserConnectionIds(string userId);
 
+    }
+
+    public class HubCallerContextWrapper
+    {
+        public string ConnectionId { get; }
+        private readonly HubCallerContext _hubCallerContext;
+        public HubCallerContextWrapper(HubCallerContext hubCallerContext)
+        {
+            _hubCallerContext = hubCallerContext;
+            ConnectionId = hubCallerContext.ConnectionId;
+        }
+        public void AbortConnection()
+        {
+            _hubCallerContext.Abort();
+        }
+        public override int GetHashCode()
+        {
+            return ConnectionId.GetHashCode();
+        }
+        public override bool Equals(object? obj)
+        {
+            if (obj is not HubCallerContextWrapper other)
+                return false;
+
+            return this.ConnectionId == other.ConnectionId;
+        }
     }
 }

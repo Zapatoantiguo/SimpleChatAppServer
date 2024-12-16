@@ -38,7 +38,8 @@ namespace SimpleChatApp.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            _userHubContextManager.AddUserHubContext(Context.UserIdentifier!, Context);
+            _userHubContextManager.AddUserHubContext(Context.UserIdentifier!,
+                new HubCallerContextWrapper(Context));
 
             string userId = Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var userChats = await _chatDataService.GetUserChatsAsync(userId);
@@ -59,7 +60,8 @@ namespace SimpleChatApp.Hubs
         }
         public override Task OnDisconnectedAsync(Exception? exception)
         {
-            _userHubContextManager.RemoveUserHubContexts(Context.UserIdentifier!);
+            _userHubContextManager.RemoveUserHubContext(Context.UserIdentifier!,
+                new HubCallerContextWrapper(Context));
 
             return base.OnDisconnectedAsync(exception);
         }

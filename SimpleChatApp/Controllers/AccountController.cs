@@ -112,7 +112,7 @@ namespace SimpleChatApp.Controllers
                 return TypedResults.Unauthorized();
             }
 
-            _userHubContextManager.Disconnect(user.Id);
+            _userHubContextManager.AbortUserConnections(user.Id);
             await _signInManager.SignOutAsync();
 
             if (user.IsAnonimous)
@@ -156,7 +156,7 @@ namespace SimpleChatApp.Controllers
                 return TypedResults.Unauthorized();
             }
 
-            _userHubContextManager.Disconnect(user.Id);
+            _userHubContextManager.AbortUserConnections(user.Id);
             await _userManager.DeleteAsync(user);
             return TypedResults.Ok();
         }
