@@ -1,13 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
-using SimpleChatApp.Data.Services;
+using SimpleChatApp_BAL.Services;
 using SimpleChatApp.Hubs.Services;
-using SimpleChatApp.Models;
-using SimpleChatApp.Models.DTO;
-using SimpleChatApp.Models.Notifications;
+using SimpleChatApp_DAL.Models;
 using System.Security.Claims;
-using System.Text.Json;
 
 namespace SimpleChatApp.Hubs
 {

@@ -1,4 +1,4 @@
-﻿using SimpleChatApp.Models.DTO;
+﻿using SimpleChatApp_BAL.DTO;
 
 namespace SimpleChatApp.Hubs
 {

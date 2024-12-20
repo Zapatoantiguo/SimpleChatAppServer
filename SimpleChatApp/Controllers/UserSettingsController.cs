@@ -1,12 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using SimpleChatApp.Data.Services;
-using SimpleChatApp.ErrorHandling.ResultPattern;
-using SimpleChatApp.Models;
-using SimpleChatApp.Models.DTO;
+using SimpleChatApp_BAL.Services;
+using SimpleChatApp_BAL.DTO;
+using SimpleChatApp_BAL.ErrorHandling.ResultPattern;
 using System.Security.Claims;
 
 namespace SimpleChatApp.Controllers

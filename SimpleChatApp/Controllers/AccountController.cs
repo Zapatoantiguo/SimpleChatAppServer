@@ -1,4 +1,4 @@
-﻿using SimpleChatApp.Models;
+﻿using SimpleChatApp_DAL.Models;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using SimpleChatApp.Hubs.Services;
-using SimpleChatApp.Data.Services;
-using SimpleChatApp.Models.DTO.Auth;
+using SimpleChatApp_BAL.Services;
+using SimpleChatApp_BAL.DTO.Auth;
 
 namespace SimpleChatApp.Controllers
 {

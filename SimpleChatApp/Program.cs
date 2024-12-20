@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using SimpleChatApp.Background;
-using SimpleChatApp.Data;
-using SimpleChatApp.Data.Services;
-using SimpleChatApp.ErrorHandling;
+using SimpleChatApp_BAL.Background;
+using SimpleChatApp_BAL.Services;
 using SimpleChatApp.Hubs;
 using SimpleChatApp.Hubs.Services;
-using SimpleChatApp.Models;
+using SimpleChatApp_DAL.Models;
+using SimpleChatApp_DAL;
+using SimpleChatApp;
 
 var builder = WebApplication.CreateBuilder(args);
 

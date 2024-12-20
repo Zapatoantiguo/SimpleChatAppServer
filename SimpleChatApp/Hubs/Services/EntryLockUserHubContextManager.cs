@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using SimpleChatApp.Tools;
+﻿using SimpleChatApp_BAL.Tools;
 
 namespace SimpleChatApp.Hubs.Services
 {

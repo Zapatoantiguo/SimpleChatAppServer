@@ -4,13 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using SimpleChatApp.Data;
-using SimpleChatApp.Data.Services;
-using SimpleChatApp.ErrorHandling.ResultPattern;
+//using SimpleChatApp.Data;
+using SimpleChatApp_BAL.Services;
+using SimpleChatApp_BAL.DTO;
+using SimpleChatApp_BAL.ErrorHandling.ResultPattern;
 using SimpleChatApp.Hubs;
 using SimpleChatApp.Hubs.Services;
-using SimpleChatApp.Models;
-using SimpleChatApp.Models.DTO;
+using SimpleChatApp_DAL.Models;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
