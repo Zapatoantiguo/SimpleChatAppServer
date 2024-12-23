@@ -39,3 +39,5 @@ app.MapHub<AppHub>("/ChatHub");
 
 
 app.Run();
+
+public partial class Program { }

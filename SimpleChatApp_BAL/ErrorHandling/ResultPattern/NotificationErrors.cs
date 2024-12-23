@@ -7,5 +7,8 @@
 
         public static Error NotFound() => Error.NotFound(
             "Notifications.NotFound", $"User is not invited in chat");
+
+        public static Error InvitationNotPermitted() => Error.Forbidden(
+            "Invitations.Forbidden", $"You haven't permissions to invite specified user in chat room");
     }
 }

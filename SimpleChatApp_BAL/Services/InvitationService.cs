@@ -24,11 +24,11 @@ namespace SimpleChatApp_BAL.Services
             _notificationDataService = notificationDataService;
         }
         public async Task<Result<InviteNotification>> HandleInviteRequestAsync(
-            string sourceId, string targetUserName, string chatRoomName)
+            string sourceUserId, string targetUserName, string chatRoomName)
         {
-            User? caller = await _context.Users.SingleOrDefaultAsync(u => u.Id == sourceId);
+            User? caller = await _context.Users.SingleOrDefaultAsync(u => u.Id == sourceUserId);
             if (caller == null)
-                throw new Exception($"User ID {sourceId} doesn't exist in DB");
+                throw new Exception($"User ID {sourceUserId} doesn't exist in DB");
 
             User? targetUser = await _context.Users
                 .Include(u => u.Profile)
@@ -44,7 +44,7 @@ namespace SimpleChatApp_BAL.Services
             if (chat == null)
                 return Result<InviteNotification>.Failure(ChatErrors.NotFound(chatRoomName));
 
-            if (!chat.UserChatRoom.Any(e => e.UserId == sourceId))  // source user not in chat
+            if (!chat.UserChatRoom.Any(e => e.UserId == sourceUserId))  // source user not in chat
                 return Result<InviteNotification>.Failure(ChatErrors.UserIsNotInChat());
 
             if (chat.UserChatRoom.Any(e => e.UserId == targetUser.Id))  // target in chat already
@@ -56,13 +56,12 @@ namespace SimpleChatApp_BAL.Services
             {
                 bool callerIsFriend = await _userDataService.CheckIsFriend(targetUser.Id, caller.Id);
                 if (!callerIsFriend)
-                    return Result<InviteNotification>.Failure(UserErrors.IsNotFriend());
+                    return Result<InviteNotification>.Failure(NotificationErrors.InvitationNotPermitted());
             }
             else if (profile?.InventionOptions == ChatInventionOptions.ResidentsOnly)
             {
                 if (caller.IsAnonimous)
-                    return Result<InviteNotification>.Failure(Error.Failure(
-                        "NotAllowed", "Target user doesn't accept invitations from anons"));
+                    return Result<InviteNotification>.Failure(NotificationErrors.InvitationNotPermitted());
             }
             InviteNotification notification = new()
             {

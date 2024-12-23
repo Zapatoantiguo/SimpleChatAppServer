@@ -1,18 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-//using SimpleChatApp.Data;
 using SimpleChatApp_BAL.Services;
 using SimpleChatApp_BAL.DTO;
 using SimpleChatApp_BAL.ErrorHandling.ResultPattern;
 using SimpleChatApp.Hubs;
 using SimpleChatApp.Hubs.Services;
-using SimpleChatApp_DAL.Models;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace SimpleChatApp.Controllers
 {
@@ -42,8 +36,6 @@ namespace SimpleChatApp.Controllers
         [Authorize]
         public async Task<IResult> CreateChat(ChatRoomDto chatDto)
         {
-            // TODO: add chat room name validation
-
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var creationResult = await _chatDataService.CreateChatAsync(userId, chatDto);
 
@@ -56,7 +48,7 @@ namespace SimpleChatApp.Controllers
                 foreach (var connectionId in userHubConnections)
                     await _hubContext.Groups.AddToGroupAsync(connectionId, creationResult.Value.Name);
             }
-                
+
             return TypedResults.Ok(creationResult.Value);
         }
         [HttpGet]
@@ -109,7 +101,7 @@ namespace SimpleChatApp.Controllers
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var addMsgResult = await _messageDataService.AddMessageAsync(userId, chatRoomName, message.Content);
 
-            if (addMsgResult.IsFailure) 
+            if (addMsgResult.IsFailure)
                 return addMsgResult.ToProblemDetails();
 
             var addedMsg = addMsgResult.Value;
@@ -130,14 +122,14 @@ namespace SimpleChatApp.Controllers
             string userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             var removeResult = await _chatDataService.RemoveUserFromChatAsync(userId, chatRoomName);
 
-            if (removeResult.IsFailure) 
+            if (removeResult.IsFailure)
                 return removeResult.ToProblemDetails();
 
             var hubConnIds = _userHubContextManager.GetUserConnectionIds(userId);
 
             if (hubConnIds?.Count > 0)
-            foreach (var hubConnId in hubConnIds)
-                await _hubContext.Groups.RemoveFromGroupAsync(hubConnId, chatRoomName);
+                foreach (var hubConnId in hubConnIds)
+                    await _hubContext.Groups.RemoveFromGroupAsync(hubConnId, chatRoomName);
 
             await _hubContext.Clients.Group(chatRoomName)
                 .OnUserLeavedChat(removeResult.Value.UserName!, chatRoomName);
@@ -180,8 +172,11 @@ namespace SimpleChatApp.Controllers
             {
                 // add current and other connections of this user to hub group
                 List<string>? userConnections = _userHubContextManager.GetUserConnectionIds(userId);
-                foreach (var connectionId in userConnections!)
-                    await _hubContext.Groups.AddToGroupAsync(connectionId, chatRoomName);
+                if (userConnections != null)
+                {
+                    foreach (var connectionId in userConnections)
+                        await _hubContext.Groups.AddToGroupAsync(connectionId, chatRoomName);
+                }
 
                 string userName = User.FindFirstValue(ClaimTypes.Name)!;
                 await _hubContext.Clients.Group(chatRoomName).OnUserJoinedChat(userName, chatRoomName);
